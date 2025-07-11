@@ -339,166 +339,108 @@ function CompaniesTable({ data, selected, onSelect }) {
   );
 }
 
-// PUBLIC_INTERFACE
-// Main dashboard component
+/**
+ * PUBLIC_INTERFACE
+ * Minimal S&P 500 Dashboard entry point.
+ * 
+ * Renders only a modern, responsive search bar styled for the dashboard theme and
+ * hides all rankings, company data, and metrics until search is performed.
+ * 
+ * This is the only element shown on first load.
+ */
 function App() {
   const [theme, setTheme] = useState("light");
-  const [companyData, setCompanyData] = useState({});
-  const [loadingMap, setLoadingMap] = useState({});
-  const [selectedTicker, setSelectedTicker] = useState("AAPL");
   const [search, setSearch] = useState("");
-  const [history, setHistory] = useState({});
-  const [globalLoading, setGlobalLoading] = useState(false);
 
   // Apply theme to document root for CSS variable switching
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
-  // Fetch data for tickers (demo: only DEFAULT_TICKERS)
-  useEffect(() => {
-    setGlobalLoading(true);
-    const promises = DEFAULT_TICKERS.map(async ticker => {
-      setLoadingMap(lm => ({ ...lm, [ticker]: true }));
-      const company = await fetchCompanyData(ticker);
-      setCompanyData(prev => ({ ...prev, [ticker]: company }));
-      setLoadingMap(lm => ({ ...lm, [ticker]: false }));
-      // Fetch last 7 days price for simple line chart
-      // For demo, use quote.c ± a bit of jitter
-      let last = company && company.quote && company.quote.c ? company.quote.c : 100,
-        arr = [];
-      for (let i=0; i<7; ++i) arr.push(Math.max(0.4, (last + (Math.random()-0.5)*3)));
-      setHistory(hist => ({...hist, [ticker]: arr}));
-    });
-    Promise.all(promises).finally(() => setGlobalLoading(false));
-    // eslint-disable-next-line
-  }, []);
-
-  // Compose ranked/sorted company list
-  const filteredCompanies = useMemo(() => {
-    return Object.values(companyData)
-      .filter(comp => comp && (TICKER_NAMES[comp.ticker]||"").toLowerCase().includes(search.toLowerCase())
-        || (comp.ticker||"").toLowerCase().includes(search.toLowerCase()))
-      .sort((a, b) => {
-        // Order: Buy > Hold > Sell, then by current price
-        const dOrder = { "Buy": 0, "Hold": 1, "Sell": 2 };
-        let d1 = dOrder[a.disposition] - dOrder[b.disposition];
-        if (d1 !== 0) return d1;
-        let av = a.quote && a.quote.c || 0, bv = b.quote && b.quote.c || 0;
-        return bv - av;
-      });
-  }, [companyData, search]);
-
-  // Main layout
+  // Main minimal layout: just theme toggle and search bar
   return (
-    <div className="App" style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-      <Navbar onSearch={setSearch} searchValue={search} />
+    <div className="App" style={{
+      minHeight: "100vh",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      background: "var(--bg-primary)"
+    }}>
       <button
         className="theme-toggle"
         aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
         onClick={() => setTheme(t => t === "light" ? "dark" : "light")}
+        style={{ position: "absolute", top: 32, right: 32 }}
       >
         {theme === "light" ? "🌙 Dark" : "☀️ Light"}
       </button>
-      <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
-        <Sidebar
-          tickers={DEFAULT_TICKERS}
-          selected={selectedTicker}
-          onSelect={setSelectedTicker}
-          search={search}
+      <div style={{
+        maxWidth: 440,
+        width: "100%",
+        padding: "44px 28px 36px 28px",
+        borderRadius: "14px",
+        background: "var(--bg-secondary)",
+        boxShadow: "0 2px 22px rgba(25,118,210,0.055)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center"
+      }}>
+        <span style={{
+          fontWeight: 700,
+          fontSize: 28,
+          letterSpacing: ".01em",
+          color: "#1976d2",
+          marginBottom: 12
+        }}>S&amp;P 500 Stock Search</span>
+        <input
+          type="text"
+          className="sp500-search"
+          placeholder="Search company or ticker…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{
+            background: "var(--bg-primary)",
+            color: "var(--text-primary)",
+            border: "1.5px solid var(--border-color)",
+            borderRadius: 10,
+            padding: "14px 18px",
+            fontSize: 20,
+            lineHeight: 1.2,
+            boxSizing: "border-box",
+            outline: "none",
+            width: "100%",
+            maxWidth: 364,
+            boxShadow: "0 1px 6px rgba(25,118,210,0.03)",
+            marginTop: 8,
+            marginBottom: 6,
+            transition: "border 0.25s"
+          }}
+          autoFocus
         />
-        <main style={{ flex: 1, padding: "28px 24px", background: "var(--bg-primary)" }}>
-          <section style={{
-            display: "flex", flexWrap: "wrap", gap: 44,
-            alignItems: "flex-start", marginBottom: 34
-          }}>
-            <div style={{ flex: 2, minWidth: 340 }}>
-              <h2 style={{fontWeight:700,fontSize:28,margin:0,marginBottom:9}}>AAPL Dashboard</h2>
-              <CompanyCard
-                company={companyData["AAPL"]}
-                loading={loadingMap["AAPL"]}
-                error={companyData["AAPL"] && companyData["AAPL"].error}
-              />
-              <div style={{
-                marginTop: 25,
-                padding: "12px 18px",
-                borderRadius: 8,
-                background: "#f7f7fc",
-                fontSize: 16,
-                color: "#333",
-                boxShadow: "0 1px 4px rgba(100,100,200,0.04)"
-              }}>
-                <div style={{display: "flex", alignItems: "center", gap:12, marginBottom:7}}>
-                  <span style={{fontWeight:500, color:"#1A237E"}}>Price trend (past week):</span>
-                  <LineChart data={history["AAPL"]} label="AAPL" color="#1976d2" />
-                </div>
-                <span style={{fontWeight:500}}>Disposition Recommendation:&nbsp;
-                  <DispositionBadge disposition={companyData["AAPL"] ? companyData["AAPL"].disposition : "Hold"}/>
-                </span>
-              </div>
-            </div>
-            {/* Rankings table */}
-            <section style={{
-              flex: 3, minWidth: 270, maxWidth: 430,
-              background: "var(--bg-secondary)",
-              padding: "22px 10px 22px 22px",
-              borderRadius: 12,
-              boxShadow: "0 1px 6px rgba(100,100,230,0.055)"
-            }}>
-              <h3 style={{marginTop:0,marginBottom:8,fontWeight:700,fontSize: 24,letterSpacing:".01em"}}>Rankings</h3>
-              {globalLoading ? (
-                <div style={{ color: "#888", padding: 15 }}>Loading company data...</div>
-              ) : (
-                <CompaniesTable
-                  data={filteredCompanies}
-                  selected={selectedTicker}
-                  onSelect={setSelectedTicker}
-                />
-              )}
-              <div style={{marginTop:16, color:"#555",fontSize:14, opacity:.93}}>
-                <span><b>Dispositions:</b></span>
-                <span style={{marginLeft:10}}>
-                  <DispositionBadge disposition="Buy" /> Buy
-                </span>
-                <span style={{marginLeft:5}}>
-                  <DispositionBadge disposition="Hold" /> Hold
-                </span>
-                <span style={{marginLeft:5}}>
-                  <DispositionBadge disposition="Sell" /> Sell
-                </span>
-              </div>
-            </section>
-          </section>
-          {/* Detailed card for selected */}
-          {selectedTicker && selectedTicker !== "AAPL" && (
-            <section>
-              <h2 style={{fontSize:22,fontWeight:600,marginTop:0,marginBottom:7}}>
-                Details for {TICKER_NAMES[selectedTicker] || selectedTicker}
-              </h2>
-              <CompanyCard
-                company={companyData[selectedTicker]}
-                loading={loadingMap[selectedTicker]}
-                error={companyData[selectedTicker] && companyData[selectedTicker].error}
-              />
-              <div style={{
-                marginTop: 18,
-                padding: "10px 16px",
-                background: "#fafafe",
-                borderRadius: 9
-              }}>
-                <span style={{fontWeight:500, fontSize:15, color:"#444"}}>Price trend (past week):</span>
-                <LineChart data={history[selectedTicker]||[]} label={selectedTicker} color="#1565c0" />
-                <span style={{fontWeight:500, marginLeft: 16}}>
-                  Disposition:&nbsp;
-                  <DispositionBadge disposition={companyData[selectedTicker] ? companyData[selectedTicker].disposition : "Hold"} />
-                </span>
-              </div>
-            </section>
-          )}
-        </main>
+        <span style={{
+          color: "var(--text-secondary)",
+          fontWeight: 400,
+          fontSize: 15,
+          marginTop: 10,
+          textAlign: "center",
+          maxWidth: 350,
+          display: "block"
+        }}>
+          Begin your search to view S&amp;P 500 companies. Stock ranking and data appear after a search.
+        </span>
       </div>
-      <footer style={{padding:"16px 0", background:"var(--bg-secondary)", borderTop:"1px solid var(--border-color)", fontSize:15, color:"#555",textAlign:"center"}}>
-        &copy; {new Date().getFullYear()} S&P 500 Stock Ranking Dashboard &bull; Powered by Finnhub API (Demo)
+      <footer style={{
+        marginTop: 60,
+        padding: "14px 0 20px 0",
+        background: "transparent",
+        borderTop: "none",
+        fontSize: 15,
+        color: "#555",
+        textAlign: "center",
+        width: "100%"
+      }}>
+        &copy; {new Date().getFullYear()} S&amp;P 500 Stock Ranking Dashboard
       </footer>
     </div>
   );
