@@ -7,9 +7,11 @@ import "./App.css";
  * Lets users input a valid ticker symbol, fetches and displays Finnhub stock metrics as a table
  * with attribute names as columns and the corresponding values as a single row.
  *
- * Now implements scoring and disposition logic:
- * - Computes total score by summing metric scores according to thresholds.
- * - Adds 'Disposition' as first table column ("Buy", "Hold", or "Sell").
+ * Implements new weighted, normalized scoring and disposition per requirements.
+ * Disposition is based on a sum of weighted normalized metrics:
+ *   ROE 20%, Revenue Growth YoY 15%, EPS 15%, Net Profit Margin 12%,
+ *   Gross Margin 10%, P/E Ratio 10%, Price-to-Book Ratio 10%.
+ * Dividend Yield is no longer part of the score or displayed.
  */
 
 function App() {
@@ -28,7 +30,7 @@ function App() {
   // Finnhub connection status: 'connecting' | 'connected' | 'error'
   const [connectionStatus, setConnectionStatus] = useState("connecting");
 
-  // Table attributes—update disposition label to clarify new rating range
+  // Table attributes—no Dividend Yield shown
   const TABLE_ATTRIBUTES = [
     { label: "Disposition (Recommendation)", key: "disposition", isDisposition: true },
     { label: "Current Stock Price", key: "currentStockPrice", isPrice: true },
@@ -41,8 +43,7 @@ function App() {
     { label: "Interest Coverage", key: "interestCoverage" },
     { label: "Gross Margin (TTM)", key: "grossMarginTTM" },
     { label: "Net Profit Margin (TTM)", key: "netProfitMarginTTM" },
-    { label: "P/B Ratio (Annual)", key: "pbAnnual" },
-    { label: "Dividend Yield (Indicated Annual)", key: "dividendYieldIndicatedAnnual" }
+    { label: "P/B Ratio (Annual)", key: "pbAnnual" }
   ];
 
   // Effect: apply theme to <html>
@@ -53,16 +54,10 @@ function App() {
   // PUBLIC_INTERFACE
   // Fetch Finnhub metrics and price for current ticker (In parallel)
   useEffect(() => {
-    /**
-     * Fetch metrics for a given ticker from Finnhub API.
-     * Uses the specific provided API link and key as per requirements.
-     * No dynamic environment variables used.
-     */
     async function fetchMetrics() {
       setLoading(true);
       setApiError(null);
       setConnectionStatus("connecting");
-      // Always uppercase, Finnhub requires
       const symbol = ticker.toUpperCase();
       const url = `https://finnhub.io/api/v1/stock/metric?symbol=${symbol}&metric=all&token=d1omsf9r01quemda0sugd1omsf9r01quemda0sv0`;
       try {
@@ -71,9 +66,6 @@ function App() {
         const data = await res.json();
         setMetrics(data);
         setConnectionStatus("connected");
-        // For debug confirmation
-        // eslint-disable-next-line no-console
-        console.log(`${symbol} Metrics fetched from Finnhub:`, data);
       } catch (err) {
         setApiError(err.message);
         setMetrics(null);
@@ -87,23 +79,17 @@ function App() {
       setPriceLoading(true);
       setPriceError(null);
       setStockPrice(null);
-      // Only fetch if the ticker is present
       const symbol = ticker.toUpperCase();
-      // Use your Finnhub API key here for /quote as well
       const url = `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=d1omsf9r01quemda0sugd1omsf9r01quemda0sv0`;
       try {
         const res = await fetch(url);
         if (!res.ok) throw new Error(`Price API responded ${res.status}`);
         const data = await res.json();
-        // Finnhub /quote returns { c: current price, ... }
         if (typeof data.c === "number" && !isNaN(data.c)) {
           setStockPrice(data.c);
         } else {
           setStockPrice(null);
         }
-        // Debug
-        // eslint-disable-next-line no-console
-        console.log(`${symbol} Stock price from Finnhub:`, data);
       } catch (err) {
         setPriceError(err.message);
         setStockPrice(null);
@@ -123,7 +109,6 @@ function App() {
   const toggleTheme = () => setTheme((t) => (t === "light" ? "dark" : "light"));
 
   // PUBLIC_INTERFACE
-  // Handle form submit for ticker search
   const handleSubmit = (e) => {
     e.preventDefault();
     const cleanTicker = inputTicker.trim().toUpperCase();
@@ -134,112 +119,109 @@ function App() {
 
   // PUBLIC_INTERFACE
   /**
-   * Scoring/disposition: evaluateStock per provided pseudocode.
-   * This produces "Strong Buy", "Buy", "Hold", "Sell", "Strong Sell".
-   * Field mappings (Finnhub API):
-   * - EPS (TTM): metric.epsTTM
-   * - P/E Ratio (Normalized Annual): metric.peNormalizedAnnual
-   * - Revenue Growth YoY (TTM): metric.revenueGrowthTTMYoy
-   * - ROE (TTM): metric.roeTTM
-   * - Free Cash Flow (TTM): metric.freeCashFlowTTM
-   * - Debt/Equity: calc from metric.totalDebt/metric.totalEquity
-   * - Interest Coverage: metric.interestCoverage
-   * - Gross Margin (TTM): metric.grossMarginTTM
-   * - Net Profit Margin (TTM): metric.netProfitMarginTTM
-   * - P/B Ratio (Annual): metric.pbAnnual
-   * - Dividend Yield (Indicated Annual): metric.dividendYieldIndicatedAnnual
-   * Returns: { totalScore, disposition, breakdown }
+   * Weighted, normalized scoring/disposition: implement new formula per latest spec.
+   * Disposition is now based on a sum of weighted (0–1 normalized) values:
+   * - ROE (roeTTM): 20% (higher better; range: 0–0.35)
+   * - Revenue Growth YoY: 15% (higher better; range: -0.1–0.25)
+   * - EPS (TTM): 15% (higher better; range: 0–10)
+   * - Net Profit Margin: 12% (higher better; 0–0.25)
+   * - Gross Margin: 10% (higher better; 0.15–0.65)
+   * - P/E Ratio: 10% (lower better; optimal zone: 8–18; 0–40 normalized, 1 in optimal zone)
+   * - PB Ratio: 10% (lower better; optimal zone: 1–3.5; 0–8 normalized, 1 in optimal zone)
+   * Returns: { totalScore (0–1), disposition, breakdown }
    */
   function evaluateStock(metric) {
     if (!metric) return { totalScore: 0, disposition: "N/A", breakdown: {} };
 
+    // Normalization helper (clamp between 0-1)
+    const norm = (value, min, max) => {
+      if (value === undefined || value === null || isNaN(value)) return 0;
+      if (max > min) {
+        if (value <= min) return 0;
+        if (value >= max) return 1;
+        return (value - min) / (max - min);
+      }
+      return 0;
+    };
+
+    // Lower-is-better normalization for right-skewed ratios, but optimal "middle" for zone (P/E, PB)
+    function peScore(pe) {
+      if (pe === undefined || pe === null || isNaN(pe)) return 0;
+      if (pe >= 8 && pe <= 18) return 1;
+      if (pe < 8 && pe >= 0)     return (pe - 0) / (8 - 0) * 0.5 + 0.5;
+      if (pe > 18 && pe <= 40)   return 1 - ((pe - 18) / (40 - 18)) * 1.0;
+      return 0;
+    }
+    function pbScore(pb) {
+      if (pb === undefined || pb === null || isNaN(pb)) return 0;
+      if (pb >= 1 && pb <= 3.5) return 1;
+      if (pb < 1 && pb >= 0)    return (pb - 0) / (1 - 0) * 0.6 + 0.4;
+      if (pb > 3.5 && pb <= 8)  return 1 - ((pb - 3.5) / (8 - 3.5)) * 1.0;
+      return 0;
+    }
+
+    // --- Scoring breakdown ---
     const breakdown = {};
 
-    // 1. EPS (TTM): >8 = +2, 4-8 = +1, 1-4 = 0, <1 = -1
-    const eps = metric.epsTTM;
-    breakdown.epsTTM = eps === undefined || eps === null
-      ? 0
-      : eps > 8 ? 2 : eps > 4 ? 1 : eps >= 1 ? 0 : -1;
-
-    // 2. P/E Ratio (Normalized Annual): <12 = +2, 12-18 = +1, 18-30 = 0, >30 = -1
-    const pe = metric.peNormalizedAnnual;
-    breakdown.peNormalizedAnnual = pe === undefined || pe === null
-      ? 0
-      : pe < 12 ? 2 : pe < 18 ? 1 : pe <= 30 ? 0 : -1;
-
-    // 3. Revenue Growth YoY (TTM): >0.14 = +2, 0.05-0.14 = +1, 0-0.05 = 0, <0 = -1
-    const rev = metric.revenueGrowthTTMYoy;
-    breakdown.revenueGrowthTTMYoy = rev === undefined || rev === null
-      ? 0
-      : rev > 0.14 ? 2 : rev > 0.05 ? 1 : rev >= 0 ? 0 : -1;
-
-    // 4. ROE (TTM): >0.2 = +2, 0.12–0.2 = +1, 0.05-0.12 = 0, <0.05 = -1
+    // Metric 1: ROE (TTM)
     const roe = metric.roeTTM;
-    breakdown.roeTTM = roe === undefined || roe === null
-      ? 0
-      : roe > 0.2 ? 2 : roe > 0.12 ? 1 : roe >= 0.05 ? 0 : -1;
+    breakdown.roeTTM = norm(roe, 0, 0.35);
 
-    // 5. Free Cash Flow (TTM): >0 = +1, <=0 = -1
-    const fcf = metric.freeCashFlowTTM;
-    breakdown.freeCashFlowTTM = fcf === undefined || fcf === null
-      ? 0
-      : fcf > 0 ? 1 : -1;
+    // Metric 2: Revenue Growth YoY (TTM)
+    const rev = metric.revenueGrowthTTMYoy;
+    breakdown.revenueGrowthTTMYoy = norm(rev, -0.1, 0.25);
 
-    // 6. Debt/Equity: <0.8 = +2, 0.8–1.4 = +1, 1.4–2.5 = 0, >2.5 = -1
-    let de = null;
-    if (
-      metric.totalDebt !== undefined &&
-      metric.totalDebt !== null &&
-      metric.totalEquity !== undefined &&
-      metric.totalEquity !== null &&
-      Number(metric.totalEquity) !== 0
-    ) {
-      de = Number(metric.totalDebt) / Number(metric.totalEquity);
-    }
-    breakdown.debtEquity = de === null
-      ? 0
-      : de < 0.8 ? 2 : de < 1.4 ? 1 : de <= 2.5 ? 0 : -1;
+    // Metric 3: EPS (TTM)
+    const eps = metric.epsTTM;
+    breakdown.epsTTM = norm(eps, 0, 10);
 
-    // 7. Interest Coverage: >8 = +2, 3–8 = +1, 1–3 = 0, <1 = -1
-    const ic = metric.interestCoverage;
-    breakdown.interestCoverage = ic === undefined || ic === null
-      ? 0
-      : ic > 8 ? 2 : ic > 3 ? 1 : ic >= 1 ? 0 : -1;
-
-    // 8. Gross Margin (TTM): >0.55 = +2, 0.38–0.55 = +1, 0.25–0.38 = 0, <0.25 = -1
-    const gross = metric.grossMarginTTM;
-    breakdown.grossMarginTTM = gross === undefined || gross === null
-      ? 0
-      : gross > 0.55 ? 2 : gross > 0.38 ? 1 : gross >= 0.25 ? 0 : -1;
-
-    // 9. Net Profit Margin (TTM): >0.18 = +2, 0.09–0.18 = +1, 0–0.09 = 0, <0 = -1
+    // Metric 4: Net Profit Margin (TTM)
     const net = metric.netProfitMarginTTM;
-    breakdown.netProfitMarginTTM = net === undefined || net === null
-      ? 0
-      : net > 0.18 ? 2 : net > 0.09 ? 1 : net >= 0 ? 0 : -1;
+    breakdown.netProfitMarginTTM = norm(net, 0, 0.25);
 
-    // 10. P/B Ratio (Annual): <2 = +2, 2–3.7 = +1, 3.7–8 = 0, >8 = -1
+    // Metric 5: Gross Margin (TTM)
+    const gross = metric.grossMarginTTM;
+    breakdown.grossMarginTTM = norm(gross, 0.15, 0.65);
+
+    // Metric 6: P/E Ratio (Normalized Annual)
+    const pe = metric.peNormalizedAnnual;
+    breakdown.peNormalizedAnnual = peScore(pe);
+
+    // Metric 7: P/B Ratio (Annual)
     const pb = metric.pbAnnual;
-    breakdown.pbAnnual = pb === undefined || pb === null
-      ? 0
-      : pb < 2 ? 2 : pb < 3.7 ? 1 : pb <= 8 ? 0 : -1;
+    breakdown.pbAnnual = pbScore(pb);
 
-    // 11. Dividend Yield (Indicated Annual): >0.035 = +2, 0.015-0.035 = +1, 0–0.015 = 0, <0 = -1
-    const dy = metric.dividendYieldIndicatedAnnual;
-    breakdown.dividendYieldIndicatedAnnual = dy === undefined || dy === null
-      ? 0
-      : dy > 0.035 ? 2 : dy > 0.015 ? 1 : dy >= 0 ? 0 : -1;
+    // Weights
+    const WEIGHTS = {
+      roeTTM: 0.20,
+      revenueGrowthTTMYoy: 0.15,
+      epsTTM: 0.15,
+      netProfitMarginTTM: 0.12,
+      grossMarginTTM: 0.10,
+      peNormalizedAnnual: 0.10,
+      pbAnnual: 0.10,
+    };
 
-    // Total score: sum
-    const scoreList = Object.values(breakdown);
-    const totalScore = scoreList.reduce((a, b) => a + b, 0);
+    // Compose weighted sum
+    let totalScore = 0.0;
+    totalScore += breakdown.roeTTM * WEIGHTS.roeTTM;
+    totalScore += breakdown.revenueGrowthTTMYoy * WEIGHTS.revenueGrowthTTMYoy;
+    totalScore += breakdown.epsTTM * WEIGHTS.epsTTM;
+    totalScore += breakdown.netProfitMarginTTM * WEIGHTS.netProfitMarginTTM;
+    totalScore += breakdown.grossMarginTTM * WEIGHTS.grossMarginTTM;
+    totalScore += breakdown.peNormalizedAnnual * WEIGHTS.peNormalizedAnnual;
+    totalScore += breakdown.pbAnnual * WEIGHTS.pbAnnual;
 
-    // Disposition mapping
+    // Clamp to [0,1]
+    totalScore = Math.max(0, Math.min(1, totalScore));
+
+    // Breakpoints (sample mapping; tuneable)
+    // 0.80–1.00: Strong Buy, 0.65–0.80: Buy, 0.45–0.65: Hold, 0.30–0.45: Sell, <0.30: Strong Sell
     let disposition = "Hold";
-    if (totalScore >= 13) disposition = "Strong Buy";
-    else if (totalScore >= 8) disposition = "Buy";
-    else if (totalScore >= 3) disposition = "Hold";
-    else if (totalScore >= -2) disposition = "Sell";
+    if (totalScore >= 0.80) disposition = "Strong Buy";
+    else if (totalScore >= 0.65) disposition = "Buy";
+    else if (totalScore >= 0.45) disposition = "Hold";
+    else if (totalScore >= 0.30) disposition = "Sell";
     else disposition = "Strong Sell";
 
     return { totalScore, disposition, breakdown };
@@ -247,10 +229,7 @@ function App() {
 
   // Wrapper to comply with old call signature
   function getMetricScoreAndDisposition(metric, stockPriceValue) {
-    // Just use the evaluateStock function and relabel as existing contract
     const result = evaluateStock(metric);
-    // Map differences in param naming for consumers:
-    // - individualScores (old) = breakdown (new)
     return {
       totalScore: result.totalScore,
       disposition: result.disposition,
@@ -258,15 +237,12 @@ function App() {
     };
   }
 
-  // Helper: Format value for table cell (now handles disposition column)
+  // Format value for table cell (now handles disposition column)
   function getMetricValue(metric, key) {
     if (key === "disposition") {
-      // Calculate the disposition only if metric is present
       const { disposition } = getMetricScoreAndDisposition(metric, stockPrice);
-      // Display as a badge
       if (!metric) return "N/A";
       let color, bg;
-      // New: Five buckets colorization
       switch (disposition) {
         case "Strong Buy":
           color = "#fff";
@@ -288,7 +264,7 @@ function App() {
           color = "#fff";
           bg = "#7b1fa2"; // deep purple for strong sell
           break;
-        default: // N/A or unknown
+        default:
           color = "#888";
           bg = "#e0e0e0";
       }
@@ -311,7 +287,6 @@ function App() {
       if (priceError) return "N/A";
       if (stockPrice === null || stockPrice === undefined || isNaN(stockPrice))
         return "N/A";
-      // Show with $ and 2 decimals
       return "$" + Number(stockPrice).toFixed(2);
     }
     if (!metric) return "N/A";
@@ -330,11 +305,10 @@ function App() {
     }
     const v = metric[key];
     if (v === undefined || v === null || v === "") return "N/A";
-    // Show as percent if the attribute is a margin or yield
+    // Show as percent if the attribute is a margin or YoY
     if (
       key === "grossMarginTTM" ||
       key === "netProfitMarginTTM" ||
-      key === "dividendYieldIndicatedAnnual" ||
       key === "revenueGrowthTTMYoy"
     ) {
       return typeof v === "number" ? (v * 100).toFixed(2) + "%" : v + "%";
@@ -352,10 +326,8 @@ function App() {
     return typeof v === "number" ? v.toFixed(2) : v;
   }
 
-  // Helper to render Finnhub status badge
   function renderStatusBadge(status) {
     let label, color, bg, icon;
-
     switch (status) {
       case "connecting":
         label = "Connecting to Finnhub…";
@@ -381,7 +353,6 @@ function App() {
         bg = "#e2e3e5";
         icon = "❓";
     }
-
     return (
       <div
         style={{
@@ -408,7 +379,6 @@ function App() {
     );
   }
 
-  // Render main content
   return (
     <div className="App">
       <header className="App-header">
@@ -419,10 +389,7 @@ function App() {
         >
           {theme === "light" ? "🌙 Dark" : "☀️ Light"}
         </button>
-
-        {/* Finnhub API Connection Status (top area) */}
         {renderStatusBadge(connectionStatus)}
-
         <h1>S&amp;P 500 Stock Dashboard</h1>
         <form
           onSubmit={handleSubmit}
@@ -508,7 +475,6 @@ function App() {
                 marginTop: 12,
               }}
             >
-              {/* New table: attr names are columns, values for current ticker in one row */}
               <table
                 style={{
                   width: "100%",
@@ -524,7 +490,7 @@ function App() {
               >
                 <thead>
                   <tr>
-                    {TABLE_ATTRIBUTES.map((attr, ix) => (
+                    {TABLE_ATTRIBUTES.map((attr) => (
                       <th
                         key={attr.key}
                         style={{
@@ -544,7 +510,7 @@ function App() {
                 </thead>
                 <tbody>
                   <tr>
-                    {TABLE_ATTRIBUTES.map((attr, ix) => (
+                    {TABLE_ATTRIBUTES.map((attr) => (
                       <td
                         key={attr.key}
                         style={{
