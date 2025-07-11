@@ -4,8 +4,9 @@ const BASE = "https://finnhub.io/api/v1";
 
 // PUBLIC_INTERFACE
 export async function getStockData(ticker) {
-  const API_KEY = process.env.REACT_APP_FINNHUB_API_KEY;
-  if (!API_KEY) throw new Error("Missing Finnhub API key");
+  // Hardcoded API key as instructed
+  const API_KEY = 'd1okfe1r01quemd9ir20d1okfe1r01quemd9ir2g';
+  // No longer need to throw if missing
   // Get price quote
   const quoteRes = await axios.get(`${BASE}/quote`, {
     params: { symbol: ticker, token: API_KEY }
