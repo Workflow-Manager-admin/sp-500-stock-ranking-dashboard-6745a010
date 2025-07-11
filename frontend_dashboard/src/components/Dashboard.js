@@ -115,10 +115,20 @@ function Dashboard({ ticker, setApiStatus, apiStatus, apiError }) {
     <DashRoot>
       <DashLeft>
         {getApiStatusUI()}
-        <ApiKeyBox>
-          <ApiKeyLabel>Active Finnhub API Key:</ApiKeyLabel>
-          <ApiKeyValue>d1omsf9r01quemda0sugd1omsf9r01quemda0sv0</ApiKeyValue>
-        </ApiKeyBox>
+        <ApiInfoContainer>
+          <InfoBlock>
+            <InfoLabel>API Endpoint:</InfoLabel>
+            <InfoValue>
+              https://finnhub.io/api/v1/stock/metric?symbol=AAPL&amp;metric=all&amp;token=*****
+            </InfoValue>
+          </InfoBlock>
+          <InfoBlock>
+            <InfoLabel>API Key:</InfoLabel>
+            <InfoValue>
+              d1omsf9r01quemda0sugd1omsf9r01quemda0sv0
+            </InfoValue>
+          </InfoBlock>
+        </ApiInfoContainer>
         <h1>
           {company?.name || ticker}
           <Badge $type={disposition}>{disposition}</Badge>
@@ -221,35 +231,46 @@ const DashRoot = styled.div`
   }
 `;
 
-// API Key info section: lightweight and out of main content path
-const ApiKeyBox = styled.div`
-  background: #f2f7fb;
-  color: #144482;
+/** API info UI block (endpoint + key, unobtrusive, top left of Dashboard) */
+const ApiInfoContainer = styled.div`
+  background: #f3f7fb;
   border-radius: 8px;
-  font-size: 0.99em;
-  margin-bottom: 14px;
-  padding: 7px 18px 7px 16px;
-  box-shadow: 0 1px 2px rgba(30,40,70,.04);
   display: flex;
-  align-items: baseline;
+  flex-direction: column;
+  align-items: start;
+  gap: 3px;
+  padding: 7px 17px 7px 15px;
+  margin-bottom: 20px;
+  box-shadow: 0 0.5px 1.5px rgba(30,40,70,0.05);
+  font-size: 0.98em;
+  min-width: 0;
+  max-width: 540px;
+`;
+
+const InfoBlock = styled.div`
+  display: flex;
+  align-items: center;
   gap: 7px;
+  margin-bottom: 2px;
 `;
 
-const ApiKeyLabel = styled.span`
-  font-weight: 500;
-  margin-right: 4px;
+const InfoLabel = styled.span`
   color: #1976d2;
-`;
-
-const ApiKeyValue = styled.span`
-  font-family: "Menlo", "Consolas", "monospace";
   font-weight: 600;
-  color: #1976d2;
+  min-width: 98px;
+`;
+
+const InfoValue = styled.span`
+  font-family: "Menlo", "Consolas", "monospace";
   background: #eaf1fa;
-  padding: 1px 10px 2px 9px;
+  color: #144482;
   border-radius: 4px;
-  font-size: 1em;
+  padding: 2px 9px 2.5px 9px;
+  font-size: 0.99em;
+  word-break: break-all;
+  font-weight: 500;
   user-select: all;
+  letter-spacing: 0.01em;
 `;
 
 const DashLeft = styled.div`
