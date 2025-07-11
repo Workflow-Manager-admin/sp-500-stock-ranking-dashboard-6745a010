@@ -1,5 +1,12 @@
 # S&P 500 Stock Ranking Dashboard (frontend_dashboard)
 
+**Finnhub API Key Setup:**  
+To enable live data, create a `.env` file in your project root and add:  
+```
+REACT_APP_FINNHUB_API_KEY=your_finnhub_api_key_here
+```
+Obtain your key from [Finnhub.io](https://finnhub.io/) (free sign-up available).
+
 This React application is a real-time dashboard for ranking S&P 500 companies and providing Buy/Sell/Hold dispositions based on 10 performance parameters using Finnhub API data.
 
 ## Features

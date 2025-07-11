@@ -2,21 +2,26 @@ import axios from "axios";
 
 /**
  * PUBLIC_INTERFACE
- * Fetches AAPL stock metrics from the required Finnhub endpoint ONLY:
- * https://finnhub.io/api/v1/stock/metric?symbol=AAPL&metric=
- * - No key or metric param modification is allowed.
- * - This is used for all real-time AAPL metric data in the dashboard.
+ * Fetches AAPL stock metrics from the Finnhub API using the API key provided in the environment.
+ * The Finnhub API key must be set in the `.env` file as REACT_APP_FINNHUB_API_KEY.
+ * Endpoint format: https://finnhub.io/api/v1/stock/metric?symbol=AAPL&metric=&token={API_KEY}
  *
  * @returns {Promise<{metric: object, chart: array, c?: number, d?: number, dp?: number, pc?: number}>}
  * @throws {Error} On fetch failure, gives actionable message with timestamp.
  */
 export async function getStockData() {
-  const FINNHUB_ENDPOINT =
-    "https://finnhub.io/api/v1/stock/metric?symbol=AAPL&metric=";
+  const apiKey = process.env.REACT_APP_FINNHUB_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "Finnhub API key missing. Please create a .env file in your project root and set REACT_APP_FINNHUB_API_KEY=your_finnhub_api_key_here."
+    );
+  }
 
-  // Logging for debugging: log the required endpoint, no token present
+  const FINNHUB_ENDPOINT = `https://finnhub.io/api/v1/stock/metric?symbol=AAPL&metric=&token=${apiKey}`;
+
+  // Logging for debugging: show endpoint (key redacted in logs)
   // eslint-disable-next-line
-  console.log(`[Finnhub] Using required endpoint: ${FINNHUB_ENDPOINT}`);
+  console.log(`[Finnhub] Using endpoint: https://finnhub.io/api/v1/stock/metric?symbol=AAPL&metric=&token=***`);
 
   let metricRes;
   try {
@@ -30,7 +35,7 @@ export async function getStockData() {
     let details = "";
     if (err.response) {
       msg += ` HTTP ${err.response.status}: ${JSON.stringify(err.response.data)}`;
-      details += "Check if Finnhub API is available and rate-limits have not been exceeded.";
+      details += "Check if Finnhub API is available, your API key is valid, and rate-limits have not been exceeded.";
     } else if (err.request) {
       msg += " No response (network issue?)";
       details += "Verify your internet connection and ensure finnhub.io is reachable from your network.";
@@ -39,7 +44,7 @@ export async function getStockData() {
     }
 
     const actionHint =
-      "See console for full stack trace. If persistent, check your network/firewall settings or https://finnhub.io/status.";
+      "See console for full stack trace. If persistent, check your network/firewall settings, API key, or https://finnhub.io/status.";
 
     // eslint-disable-next-line
     console.error(`[Finnhub ERROR @ ${errTime}]`, msg, "\\nDetails:", err, "\\nAction:", details);

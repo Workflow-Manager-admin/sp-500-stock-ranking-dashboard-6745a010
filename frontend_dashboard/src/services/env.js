@@ -1,5 +1,6 @@
-/*
-  Deprecated: env.js is no longer used.
-  The application now uses ONLY the exact hardcoded Finnhub API endpoint and key,
-  and does not reference environment variables or dynamic keys/options.
-*/
+/**
+ * This file is not used for runtime environment logic.
+ * Set the Finnhub API key in your .env file using:
+ *   REACT_APP_FINNHUB_API_KEY=your_finnhub_api_key_here
+ * The Finnhub integration in src/services/finnhub.js automatically picks up this key.
+ */
