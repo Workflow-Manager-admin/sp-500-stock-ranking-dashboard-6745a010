@@ -26,28 +26,39 @@ function Dashboard({ ticker, setApiStatus, apiStatus, apiError }) {
     setLoading(true);
     setError("");
     setApiStatus("loading");
-    getStockData() // no ticker!
+    getStockData()
       .then((data) => {
         setStock(data);
         setLoading(false);
         setApiStatus("ok");
       })
       .catch((e) => {
+        // Always log detail with timestamp if not production
+        const errorDetail =
+          e && e.message
+            ? e.message
+            : typeof e === "object"
+            ? JSON.stringify(e)
+            : String(e);
+        const time = new Date().toLocaleString();
+        // Log for diagnosis (even if in production, log error with UTC time for diagnosis)
+        // eslint-disable-next-line
+        console.error(`[Dashboard Finnhub Error at ${time}]`, errorDetail);
+
+        // Prepare actionable error message for user diagnosis
         setError(
           <>
-            Could not fetch data.<br />
-            {process.env.NODE_ENV !== "production" && (
-              <span style={{fontSize:"90%"}}>{typeof e === "object" && e?.message ? e.message : e+""}</span>
-            )}
+            <span>
+              Could not fetch data from Finnhub.<br />
+              <span style={{ fontSize: "92%" }}>
+                {errorDetail}
+              </span>
+            </span>
           </>
         );
         setApiStatus("error");
         setStock(null);
         setLoading(false);
-        if (process.env.NODE_ENV !== "production") {
-          // eslint-disable-next-line
-          console.error("[Dashboard] Error during Finnhub fetch:", e);
-        }
       });
   }, [ticker, setApiStatus]);
 
