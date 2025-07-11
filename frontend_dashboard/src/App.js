@@ -151,6 +151,11 @@ function App() {
           )}
           {metrics && metrics.metric ? (
             <div style={{ textAlign: "left", fontSize: "1.08rem", width: "100%", overflowX: "auto" }}>
+              {/* 
+                All indicator values are dynamically fetched from Finnhub API response (AAPL),
+                including values requiring calculation. Each value is live -- nothing is hardcoded or “static.”
+                If a metric is unavailable, renders "—".
+               */}
               <table
                 style={{
                   minWidth: 820,
@@ -170,76 +175,83 @@ function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td>Earnings Per Share (TTM)</td>
-                    <td>{metrics.metric.epsTTM ?? "—"}</td>
-                  </tr>
-                  <tr>
-                    <td>Price-to-Earnings Ratio (Normalized, Annual)</td>
-                    <td>{metrics.metric.peNormalizedAnnual ?? "—"}</td>
-                  </tr>
-                  <tr>
-                    <td>Revenue Growth YoY (TTM)</td>
-                    <td>
-                      {metrics.metric.revenueGrowthTTMYoy !== undefined && metrics.metric.revenueGrowthTTMYoy !== null
-                        ? (metrics.metric.revenueGrowthTTMYoy * 100).toFixed(2) + "%"
-                        : "—"}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>Return on Equity (ROE, TTM)</td>
-                    <td>
-                      {metrics.metric.roeTTM !== undefined && metrics.metric.roeTTM !== null
-                        ? (metrics.metric.roeTTM * 100).toFixed(2) + "%"
-                        : "—"}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>Free Cash Flow (TTM)</td>
-                    <td>{metrics.metric.freeCashFlowTTM ?? "—"}</td>
-                  </tr>
-                  <tr>
-                    <td>Debt-to-Equity Ratio</td>
-                    <td>
-                      {(metrics.metric.totalDebt != null &&
-                        metrics.metric.totalEquity != null &&
-                        Number(metrics.metric.totalEquity) !== 0)
-                        ? (Number(metrics.metric.totalDebt) / Number(metrics.metric.totalEquity)).toFixed(3)
-                        : "—"}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>Interest Coverage Ratio</td>
-                    <td>{metrics.metric.interestCoverage ?? "—"}</td>
-                  </tr>
-                  <tr>
-                    <td>Gross Profit Margin (TTM)</td>
-                    <td>
-                      {metrics.metric.grossMarginTTM !== undefined && metrics.metric.grossMarginTTM !== null
-                        ? (metrics.metric.grossMarginTTM * 100).toFixed(2) + "%"
-                        : "—"}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>Net Profit Margin (TTM)</td>
-                    <td>
-                      {metrics.metric.netProfitMarginTTM !== undefined && metrics.metric.netProfitMarginTTM !== null
-                        ? (metrics.metric.netProfitMarginTTM * 100).toFixed(2) + "%"
-                        : "—"}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>Price-to-Book Ratio (Annual)</td>
-                    <td>{metrics.metric.pbAnnual ?? "—"}</td>
-                  </tr>
-                  <tr>
-                    <td>Dividend Yield (Indicated Annual)</td>
-                    <td>
-                      {metrics.metric.dividendYieldIndicatedAnnual !== undefined && metrics.metric.dividendYieldIndicatedAnnual !== null
-                        ? (metrics.metric.dividendYieldIndicatedAnnual * 100).toFixed(2) + "%"
-                        : "—"}
-                    </td>
-                  </tr>
+                  {
+                    // List-based dynamic mapping yields, all values always sourced from API/calculated
+                    [
+                      {
+                        label: "Earnings Per Share (TTM)",
+                        value: metrics.metric.epsTTM ?? "—"
+                      },
+                      {
+                        label: "Price-to-Earnings Ratio (Normalized, Annual)",
+                        value: metrics.metric.peNormalizedAnnual ?? "—"
+                      },
+                      {
+                        label: "Revenue Growth YoY (TTM)",
+                        value:
+                          metrics.metric.revenueGrowthTTMYoy !== undefined && metrics.metric.revenueGrowthTTMYoy !== null
+                            ? (metrics.metric.revenueGrowthTTMYoy * 100).toFixed(2) + "%"
+                            : "—"
+                      },
+                      {
+                        label: "Return on Equity (ROE, TTM)",
+                        value:
+                          metrics.metric.roeTTM !== undefined && metrics.metric.roeTTM !== null
+                            ? (metrics.metric.roeTTM * 100).toFixed(2) + "%"
+                            : "—"
+                      },
+                      {
+                        label: "Free Cash Flow (TTM)",
+                        value: metrics.metric.freeCashFlowTTM ?? "—"
+                      },
+                      {
+                        label: "Debt-to-Equity Ratio",
+                        value:
+                          metrics.metric.totalDebt != null &&
+                          metrics.metric.totalEquity != null &&
+                          Number(metrics.metric.totalEquity) !== 0
+                            ? (
+                              Number(metrics.metric.totalDebt) / Number(metrics.metric.totalEquity)
+                            ).toFixed(3)
+                            : "—"
+                      },
+                      {
+                        label: "Interest Coverage Ratio",
+                        value: metrics.metric.interestCoverage ?? "—"
+                      },
+                      {
+                        label: "Gross Profit Margin (TTM)",
+                        value:
+                          metrics.metric.grossMarginTTM !== undefined && metrics.metric.grossMarginTTM !== null
+                            ? (metrics.metric.grossMarginTTM * 100).toFixed(2) + "%"
+                            : "—"
+                      },
+                      {
+                        label: "Net Profit Margin (TTM)",
+                        value:
+                          metrics.metric.netProfitMarginTTM !== undefined && metrics.metric.netProfitMarginTTM !== null
+                            ? (metrics.metric.netProfitMarginTTM * 100).toFixed(2) + "%"
+                            : "—"
+                      },
+                      {
+                        label: "Price-to-Book Ratio (Annual)",
+                        value: metrics.metric.pbAnnual ?? "—"
+                      },
+                      {
+                        label: "Dividend Yield (Indicated Annual)",
+                        value:
+                          metrics.metric.dividendYieldIndicatedAnnual !== undefined &&
+                          metrics.metric.dividendYieldIndicatedAnnual !== null
+                            ? (metrics.metric.dividendYieldIndicatedAnnual * 100).toFixed(2) + "%"
+                            : "—"
+                      }
+                    ].map((row) => (
+                      <tr key={row.label}>
+                        <td>{row.label}</td>
+                        <td>{row.value}</td>
+                      </tr>
+                    ))
+                  }
                 </tbody>
               </table>
             </div>
