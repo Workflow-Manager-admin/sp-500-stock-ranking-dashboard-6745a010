@@ -153,8 +153,8 @@ function App() {
             <div style={{ textAlign: "left", fontSize: "1.08rem", width: "100%", overflowX: "auto" }}>
               {/* 
                 All indicator values are dynamically fetched from Finnhub API response (AAPL),
-                including values requiring calculation. Each value is live -- nothing is hardcoded or “static.”
-                If a metric is unavailable, renders "—".
+                with each value mapped directly from the required Finnhub metric field for the requested table columns.
+                If a metric is unavailable, renders "N/A".
                */}
               <table
                 style={{
@@ -176,74 +176,90 @@ function App() {
                 </thead>
                 <tbody>
                   {
-                    // List-based dynamic mapping yields, all values always sourced from API/calculated
+                    // All table rows mapped as per request field—shown as 'N/A' if missing/null/undefined
                     [
                       {
-                        label: "Earnings Per Share (TTM)",
-                        value: metrics.metric.epsTTM ?? "—"
+                        label: "Earnings Per Share (EPS)",
+                        value:
+                          metrics.metric.epsTTM !== undefined && metrics.metric.epsTTM !== null && metrics.metric.epsTTM !== ""
+                            ? metrics.metric.epsTTM
+                            : "N/A"
                       },
                       {
-                        label: "Price-to-Earnings Ratio (Normalized, Annual)",
-                        value: metrics.metric.peNormalizedAnnual ?? "—"
+                        label: "P/E Ratio",
+                        value:
+                          metrics.metric.peNormalizedAnnual !== undefined && metrics.metric.peNormalizedAnnual !== null && metrics.metric.peNormalizedAnnual !== ""
+                            ? metrics.metric.peNormalizedAnnual
+                            : "N/A"
                       },
                       {
-                        label: "Revenue Growth YoY (TTM)",
+                        label: "Revenue Growth",
                         value:
                           metrics.metric.revenueGrowthTTMYoy !== undefined && metrics.metric.revenueGrowthTTMYoy !== null
                             ? (metrics.metric.revenueGrowthTTMYoy * 100).toFixed(2) + "%"
-                            : "—"
+                            : "N/A"
                       },
                       {
-                        label: "Return on Equity (ROE, TTM)",
+                        label: "Return on Equity",
                         value:
                           metrics.metric.roeTTM !== undefined && metrics.metric.roeTTM !== null
                             ? (metrics.metric.roeTTM * 100).toFixed(2) + "%"
-                            : "—"
+                            : "N/A"
                       },
                       {
-                        label: "Free Cash Flow (TTM)",
-                        value: metrics.metric.freeCashFlowTTM ?? "—"
+                        label: "Free Cash Flow",
+                        value:
+                          metrics.metric.freeCashFlowTTM !== undefined && metrics.metric.freeCashFlowTTM !== null && metrics.metric.freeCashFlowTTM !== ""
+                            ? metrics.metric.freeCashFlowTTM
+                            : "N/A"
                       },
                       {
                         label: "Debt-to-Equity Ratio",
                         value:
-                          metrics.metric.totalDebt != null &&
-                          metrics.metric.totalEquity != null &&
+                          metrics.metric.totalDebt !== undefined &&
+                          metrics.metric.totalDebt !== null &&
+                          metrics.metric.totalEquity !== undefined &&
+                          metrics.metric.totalEquity !== null &&
                           Number(metrics.metric.totalEquity) !== 0
                             ? (
                               Number(metrics.metric.totalDebt) / Number(metrics.metric.totalEquity)
                             ).toFixed(3)
-                            : "—"
+                            : "N/A"
                       },
                       {
-                        label: "Interest Coverage Ratio",
-                        value: metrics.metric.interestCoverage ?? "—"
+                        label: "Interest Coverage",
+                        value:
+                          metrics.metric.interestCoverage !== undefined && metrics.metric.interestCoverage !== null && metrics.metric.interestCoverage !== ""
+                            ? metrics.metric.interestCoverage
+                            : "N/A"
                       },
                       {
-                        label: "Gross Profit Margin (TTM)",
+                        label: "Gross Margin",
                         value:
                           metrics.metric.grossMarginTTM !== undefined && metrics.metric.grossMarginTTM !== null
                             ? (metrics.metric.grossMarginTTM * 100).toFixed(2) + "%"
-                            : "—"
+                            : "N/A"
                       },
                       {
-                        label: "Net Profit Margin (TTM)",
+                        label: "Net Margin",
                         value:
                           metrics.metric.netProfitMarginTTM !== undefined && metrics.metric.netProfitMarginTTM !== null
                             ? (metrics.metric.netProfitMarginTTM * 100).toFixed(2) + "%"
-                            : "—"
+                            : "N/A"
                       },
                       {
-                        label: "Price-to-Book Ratio (Annual)",
-                        value: metrics.metric.pbAnnual ?? "—"
-                      },
-                      {
-                        label: "Dividend Yield (Indicated Annual)",
+                        label: "Price-to-Book Ratio",
                         value:
-                          metrics.metric.dividendYieldIndicatedAnnual !== undefined &&
-                          metrics.metric.dividendYieldIndicatedAnnual !== null
+                          metrics.metric.pbAnnual !== undefined && metrics.metric.pbAnnual !== null && metrics.metric.pbAnnual !== ""
+                            ? metrics.metric.pbAnnual
+                            : "N/A"
+                      },
+                      {
+                        label: "Dividend Yield",
+                        value:
+                          metrics.metric.dividendYieldIndicatedAnnual !== undefined && metrics.metric.dividendYieldIndicatedAnnual !== null
                             ? (metrics.metric.dividendYieldIndicatedAnnual * 100).toFixed(2) + "%"
-                            : "—"
+                            : "N/A"
                       }
                     ].map((row) => (
                       <tr key={row.label}>
