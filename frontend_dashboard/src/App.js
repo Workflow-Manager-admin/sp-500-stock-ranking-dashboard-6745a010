@@ -28,10 +28,9 @@ function App() {
   // Finnhub connection status: 'connecting' | 'connected' | 'error'
   const [connectionStatus, setConnectionStatus] = useState("connecting");
 
-  // Table attributes, FIRST COLUMN will be 'Disposition'
-  // All other financial/metric columns after that
+  // Table attributes—update disposition label to clarify new rating range
   const TABLE_ATTRIBUTES = [
-    { label: "Disposition", key: "disposition", isDisposition: true },
+    { label: "Disposition (Recommendation)", key: "disposition", isDisposition: true },
     { label: "Current Stock Price", key: "currentStockPrice", isPrice: true },
     { label: "EPS (TTM)", key: "epsTTM" },
     { label: "P/E Ratio (Normalized Annual)", key: "peNormalizedAnnual" },
@@ -133,50 +132,61 @@ function App() {
     }
   };
 
-  // Returns {totalScore, disposition, individualScores}
   // PUBLIC_INTERFACE
-  function getMetricScoreAndDisposition(metric, stockPriceValue) {
-    // If any argument required is missing, disposition is "N/A"
-    if (!metric) return { totalScore: 0, disposition: "N/A", individualScores: {} };
+  /**
+   * Scoring/disposition: evaluateStock per provided pseudocode.
+   * This produces "Strong Buy", "Buy", "Hold", "Sell", "Strong Sell".
+   * Field mappings (Finnhub API):
+   * - EPS (TTM): metric.epsTTM
+   * - P/E Ratio (Normalized Annual): metric.peNormalizedAnnual
+   * - Revenue Growth YoY (TTM): metric.revenueGrowthTTMYoy
+   * - ROE (TTM): metric.roeTTM
+   * - Free Cash Flow (TTM): metric.freeCashFlowTTM
+   * - Debt/Equity: calc from metric.totalDebt/metric.totalEquity
+   * - Interest Coverage: metric.interestCoverage
+   * - Gross Margin (TTM): metric.grossMarginTTM
+   * - Net Profit Margin (TTM): metric.netProfitMarginTTM
+   * - P/B Ratio (Annual): metric.pbAnnual
+   * - Dividend Yield (Indicated Annual): metric.dividendYieldIndicatedAnnual
+   * Returns: { totalScore, disposition, breakdown }
+   */
+  function evaluateStock(metric) {
+    if (!metric) return { totalScore: 0, disposition: "N/A", breakdown: {} };
 
-    // Score each metric according to threshold table
-    // Each metric is +1 point for "good", 0 for neutral, -1 for "bad"
-    // Customize thresholds as determined
-    
-    // NOTE: Thresholds are illustrative -- adapt as needed for actual project.
-    // All scoring must be consistent.
     const breakdown = {};
 
-    // EPS (TTM), higher = better
+    // 1. EPS (TTM): >8 = +2, 4-8 = +1, 1-4 = 0, <1 = -1
     const eps = metric.epsTTM;
-    breakdown.epsTTM = eps > 5 ? 1 : eps > 1 ? 0 : -1;
+    breakdown.epsTTM = eps === undefined || eps === null
+      ? 0
+      : eps > 8 ? 2 : eps > 4 ? 1 : eps >= 1 ? 0 : -1;
 
-    // P/E Ratio (Normalized Annual), lower = better, but <8 often means value, >30 can be overpriced
+    // 2. P/E Ratio (Normalized Annual): <12 = +2, 12-18 = +1, 18-30 = 0, >30 = -1
     const pe = metric.peNormalizedAnnual;
     breakdown.peNormalizedAnnual = pe === undefined || pe === null
       ? 0
-      : pe < 15 ? 1 : pe <= 30 ? 0 : -1;
+      : pe < 12 ? 2 : pe < 18 ? 1 : pe <= 30 ? 0 : -1;
 
-    // Revenue Growth YoY (TTM), higher = better, positive good
+    // 3. Revenue Growth YoY (TTM): >0.14 = +2, 0.05-0.14 = +1, 0-0.05 = 0, <0 = -1
     const rev = metric.revenueGrowthTTMYoy;
     breakdown.revenueGrowthTTMYoy = rev === undefined || rev === null
       ? 0
-      : rev > 0.1 ? 1 : rev > 0 ? 0 : -1;
+      : rev > 0.14 ? 2 : rev > 0.05 ? 1 : rev >= 0 ? 0 : -1;
 
-    // ROE (TTM), Return on equity, higher = better, >15% good
+    // 4. ROE (TTM): >0.2 = +2, 0.12–0.2 = +1, 0.05-0.12 = 0, <0.05 = -1
     const roe = metric.roeTTM;
     breakdown.roeTTM = roe === undefined || roe === null
       ? 0
-      : roe > 0.15 ? 1 : roe > 0.07 ? 0 : -1;
+      : roe > 0.2 ? 2 : roe > 0.12 ? 1 : roe >= 0.05 ? 0 : -1;
 
-    // Free Cash Flow (TTM), positive is good
+    // 5. Free Cash Flow (TTM): >0 = +1, <=0 = -1
     const fcf = metric.freeCashFlowTTM;
     breakdown.freeCashFlowTTM = fcf === undefined || fcf === null
       ? 0
-      : fcf > 0 ? 1 : fcf === 0 ? 0 : -1;
+      : fcf > 0 ? 1 : -1;
 
-    // Debt/Equity, lower = better (<1 good)
-    let de = "N/A";
+    // 6. Debt/Equity: <0.8 = +2, 0.8–1.4 = +1, 1.4–2.5 = 0, >2.5 = -1
+    let de = null;
     if (
       metric.totalDebt !== undefined &&
       metric.totalDebt !== null &&
@@ -186,50 +196,66 @@ function App() {
     ) {
       de = Number(metric.totalDebt) / Number(metric.totalEquity);
     }
-    breakdown.debtEquity = de === "N/A"
+    breakdown.debtEquity = de === null
       ? 0
-      : de < 1 ? 1 : de <= 2 ? 0 : -1;
+      : de < 0.8 ? 2 : de < 1.4 ? 1 : de <= 2.5 ? 0 : -1;
 
-    // Interest Coverage, higher = better, >5 good, <1 is dangerous
+    // 7. Interest Coverage: >8 = +2, 3–8 = +1, 1–3 = 0, <1 = -1
     const ic = metric.interestCoverage;
     breakdown.interestCoverage = ic === undefined || ic === null
       ? 0
-      : ic > 5 ? 1 : ic > 1 ? 0 : -1;
+      : ic > 8 ? 2 : ic > 3 ? 1 : ic >= 1 ? 0 : -1;
 
-    // Gross Margin (TTM), >50% is great, 30%-50% ok, <30% lower quality
+    // 8. Gross Margin (TTM): >0.55 = +2, 0.38–0.55 = +1, 0.25–0.38 = 0, <0.25 = -1
     const gross = metric.grossMarginTTM;
     breakdown.grossMarginTTM = gross === undefined || gross === null
       ? 0
-      : gross > 0.5 ? 1 : gross > 0.3 ? 0 : -1;
+      : gross > 0.55 ? 2 : gross > 0.38 ? 1 : gross >= 0.25 ? 0 : -1;
 
-    // Net Profit Margin (TTM), >15% is good, 5%-15% ok, <5% bad
+    // 9. Net Profit Margin (TTM): >0.18 = +2, 0.09–0.18 = +1, 0–0.09 = 0, <0 = -1
     const net = metric.netProfitMarginTTM;
     breakdown.netProfitMarginTTM = net === undefined || net === null
       ? 0
-      : net > 0.15 ? 1 : net > 0.05 ? 0 : -1;
+      : net > 0.18 ? 2 : net > 0.09 ? 1 : net >= 0 ? 0 : -1;
 
-    // P/B Ratio (Annual): lower = better, <3 is good
+    // 10. P/B Ratio (Annual): <2 = +2, 2–3.7 = +1, 3.7–8 = 0, >8 = -1
     const pb = metric.pbAnnual;
     breakdown.pbAnnual = pb === undefined || pb === null
       ? 0
-      : pb < 3 ? 1 : pb < 7 ? 0 : -1;
+      : pb < 2 ? 2 : pb < 3.7 ? 1 : pb <= 8 ? 0 : -1;
 
-    // Dividend Yield (Indicated Annual), >2% good, 0-2% neutral, 0 = neutral
+    // 11. Dividend Yield (Indicated Annual): >0.035 = +2, 0.015-0.035 = +1, 0–0.015 = 0, <0 = -1
     const dy = metric.dividendYieldIndicatedAnnual;
     breakdown.dividendYieldIndicatedAnnual = dy === undefined || dy === null
       ? 0
-      : dy > 0.02 ? 1 : dy > 0 ? 0 : 0; // 0 yield = 0, >2% = 1, 0-2% = 0
+      : dy > 0.035 ? 2 : dy > 0.015 ? 1 : dy >= 0 ? 0 : -1;
 
-    // Total score: sum of all 11 metrics
-    const allScores = Object.values(breakdown);
-    const totalScore = allScores.reduce((a, b) => a + b, 0);
+    // Total score: sum
+    const scoreList = Object.values(breakdown);
+    const totalScore = scoreList.reduce((a, b) => a + b, 0);
 
-    // Disposition by score: Buy >= 6, Hold >= 2, else Sell
+    // Disposition mapping
     let disposition = "Hold";
-    if (totalScore >= 6) disposition = "Buy";
-    else if (totalScore <= 1) disposition = "Sell";
+    if (totalScore >= 13) disposition = "Strong Buy";
+    else if (totalScore >= 8) disposition = "Buy";
+    else if (totalScore >= 3) disposition = "Hold";
+    else if (totalScore >= -2) disposition = "Sell";
+    else disposition = "Strong Sell";
 
-    return { totalScore, disposition, individualScores: breakdown };
+    return { totalScore, disposition, breakdown };
+  }
+
+  // Wrapper to comply with old call signature
+  function getMetricScoreAndDisposition(metric, stockPriceValue) {
+    // Just use the evaluateStock function and relabel as existing contract
+    const result = evaluateStock(metric);
+    // Map differences in param naming for consumers:
+    // - individualScores (old) = breakdown (new)
+    return {
+      totalScore: result.totalScore,
+      disposition: result.disposition,
+      individualScores: result.breakdown
+    };
   }
 
   // Helper: Format value for table cell (now handles disposition column)
@@ -240,18 +266,31 @@ function App() {
       // Display as a badge
       if (!metric) return "N/A";
       let color, bg;
-      if (disposition === "Buy") {
-        color = "#fff";
-        bg = "#43a047";
-      } else if (disposition === "Hold") {
-        color = "#fff";
-        bg = "#f9a825";
-      } else if (disposition === "Sell") {
-        color = "#fff";
-        bg = "#d32f2f";
-      } else {
-        color = "#888";
-        bg = "#e0e0e0";
+      // New: Five buckets colorization
+      switch (disposition) {
+        case "Strong Buy":
+          color = "#fff";
+          bg = "#1976d2"; // blue accent for strong buy
+          break;
+        case "Buy":
+          color = "#fff";
+          bg = "#43a047"; // green
+          break;
+        case "Hold":
+          color = "#fff";
+          bg = "#f9a825"; // amber yellow
+          break;
+        case "Sell":
+          color = "#fff";
+          bg = "#d32f2f"; // red
+          break;
+        case "Strong Sell":
+          color = "#fff";
+          bg = "#7b1fa2"; // deep purple for strong sell
+          break;
+        default: // N/A or unknown
+          color = "#888";
+          bg = "#e0e0e0";
       }
       return (
         <span style={{
