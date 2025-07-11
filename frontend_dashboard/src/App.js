@@ -351,13 +351,153 @@ function CompaniesTable({ data, selected, onSelect }) {
 function App() {
   const [theme, setTheme] = useState("light");
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [metricsData, setMetricsData] = useState(null);
+  const [error, setError] = useState(null);
 
   // Apply theme to document root for CSS variable switching
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
-  // Main minimal layout: just theme toggle and search bar
+  // Finnhub Token from environment variable
+  const FINNHUB_API_TOKEN = process.env.REACT_APP_FINNHUB_TOKEN;
+
+  // When the user presses Enter or search input changes, fetch company metrics
+  useEffect(() => {
+    // Only search for an uppercase ticker with basic length (2+ chars), and not empty.
+    const symbol = search.trim().toUpperCase();
+    if (!symbol || symbol.length < 1) {
+      setMetricsData(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    // Debounce API call: Only fetch after user stops typing for 700ms
+    const debounce = setTimeout(() => {
+      setLoading(true);
+      setError(null);
+      setMetricsData(null);
+
+      // PUBLIC_INTERFACE
+      // Fetches metrics from Finnhub
+      async function fetchMetrics() {
+        try {
+          // Check for missing token
+          if (!FINNHUB_API_TOKEN) {
+            throw new Error("API Token is missing. Please set REACT_APP_FINNHUB_TOKEN in your environment.");
+          }
+          const url = `https://finnhub.io/api/v1/stock/metric?symbol=${symbol}&metric=all&token=${FINNHUB_API_TOKEN}`;
+          const resp = await fetch(url);
+          if (!resp.ok) throw new Error("No data found for this symbol or API request failed.");
+          const json = await resp.json();
+
+          // If Finnhub returns no metrics, simulate "no results"
+          if (!json || Object.keys(json).length === 0 || !json.metric) {
+            throw new Error("No metrics found for this symbol.");
+          }
+          setMetricsData({
+            symbol,
+            metrics: json.metric
+          });
+        } catch (err) {
+          setError(err.message || "Error fetching data.");
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      fetchMetrics();
+    }, 700);
+
+    // Cleanup if user is typing fast
+    return () => clearTimeout(debounce);
+    // eslint-disable-next-line
+  }, [search, FINNHUB_API_TOKEN]);
+
+  // Render metrics data block
+  function renderMetricsTable(metricsObj) {
+    if (!metricsObj) return null;
+    // Make a short list of interesting metrics (demo), sorted by relevance for user
+    const METRIC_LABELS = [
+      ["peNormalizedAnnual", "P/E Ratio"],
+      ["revenueGrowth3Y", "Revenue Growth (3Y)"],
+      ["roeAnnual", "ROE"],
+      ["epsGrowth3Y", "EPS Growth (3Y)"],
+      ["netProfitMarginAnnual", "Profit Margin"],
+      ["marketCapitalization", "Market Cap"],
+      ["dividendYieldIndicatedAnnual", "Dividend Yield"],
+      ["currentRatioAnnual", "Current Ratio"],
+      ["beta", "Beta"],
+      ["totalDebt", "Total Debt"],
+      ["debtToEquity", "Debt/Equity"],
+      ["evToEbitda", "EV/EBITDA"],
+    ];
+
+    return (
+      <div
+        style={{
+          marginTop: 26,
+          marginBottom: 17,
+          borderRadius: 12,
+          background: "var(--bg-secondary)",
+          boxShadow: "0 2px 12px rgba(25,118,210,0.09)",
+          padding: 22,
+          maxWidth: 390,
+          width: "100%",
+          marginLeft: "auto",
+          marginRight: "auto",
+        }}
+      >
+        <h2 style={{
+          color: "#1976d2",
+          fontWeight: 700,
+          fontSize: 23,
+          margin: "0 0 11px",
+          textAlign: "center",
+        }}>
+          {metricsData.symbol}
+        </h2>
+        <table style={{ width: "100%", fontSize: 16, marginTop: 6, marginBottom: 0 }}>
+          <tbody>
+            {METRIC_LABELS.map(([key, label]) => (
+              <tr key={key}>
+                <td
+                  style={{
+                    color: "#434b57",
+                    padding: "4px 9px 4px 0",
+                    fontWeight: 500,
+                    textAlign: "left",
+                  }}
+                >
+                  {label}
+                </td>
+                <td
+                  style={{
+                    color: "#1565c0",
+                    fontFamily: "Menlo, monospace",
+                    padding: "4px 0",
+                    textAlign: "right",
+                  }}
+                >
+                  {metricsObj[key] !== undefined && metricsObj[key] !== null
+                    ? typeof metricsObj[key] === "number"
+                      ? Number(metricsObj[key]).toLocaleString(undefined, {
+                          maximumFractionDigits: 3,
+                          minimumFractionDigits: 0,
+                        })
+                      : metricsObj[key]
+                    : <span style={{ color: "#aaa" }}>–</span>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
   return (
     <div className="App" style={{
       minHeight: "100vh",
@@ -418,17 +558,40 @@ function App() {
           }}
           autoFocus
         />
-        <span style={{
-          color: "var(--text-secondary)",
-          fontWeight: 400,
-          fontSize: 15,
-          marginTop: 10,
-          textAlign: "center",
-          maxWidth: 350,
-          display: "block"
-        }}>
-          Begin your search to view S&amp;P 500 companies. Stock ranking and data appear after a search.
-        </span>
+        {loading && (
+          <span style={{
+            color: "#888",
+            marginTop: 15,
+            fontWeight: 500
+          }}>
+            Loading company metrics...
+          </span>
+        )}
+        {error && (
+          <span style={{
+            color: "#f44336",
+            marginTop: 15,
+            fontWeight: 500,
+            whiteSpace: "pre-line",
+            textAlign: "center"
+          }}>
+            {error}
+          </span>
+        )}
+        {metricsData && !loading && !error && renderMetricsTable(metricsData.metrics)}
+        {!search && (
+          <span style={{
+            color: "var(--text-secondary)",
+            fontWeight: 400,
+            fontSize: 15,
+            marginTop: 10,
+            textAlign: "center",
+            maxWidth: 350,
+            display: "block"
+          }}>
+            Begin your search to view S&amp;P 500 companies. Stock ranking and data appear after a search.
+          </span>
+        )}
       </div>
       <footer style={{
         marginTop: 60,
