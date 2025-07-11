@@ -12,6 +12,9 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
 
+  // Finnhub connection status: 'connecting' | 'connected' | 'error'
+  const [connectionStatus, setConnectionStatus] = useState("connecting");
+
   // Effect: apply theme to <html>
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -28,6 +31,7 @@ function App() {
     async function fetchAaplMetrics() {
       setLoading(true);
       setApiError(null);
+      setConnectionStatus("connecting");
       const url =
         "https://finnhub.io/api/v1/stock/metric?symbol=AAPL&metric=all&token=d1omsf9r01quemda0sugd1omsf9r01quemda0sv0";
       try {
@@ -35,12 +39,14 @@ function App() {
         if (!res.ok) throw new Error(`API responded ${res.status}`);
         const data = await res.json();
         setMetrics(data);
+        setConnectionStatus("connected");
         // For debug confirmation
         // eslint-disable-next-line no-console
         console.log("AAPL Metrics fetched from Finnhub:", data);
       } catch (err) {
         setApiError(err.message);
         setMetrics(null);
+        setConnectionStatus("error");
       } finally {
         setLoading(false);
       }
@@ -51,6 +57,62 @@ function App() {
   // PUBLIC_INTERFACE
   // Toggle light/dark theme
   const toggleTheme = () => setTheme((t) => (t === "light" ? "dark" : "light"));
+
+  // Helper to render Finnhub status badge
+  function renderStatusBadge(status) {
+    let label, color, bg, icon;
+
+    switch (status) {
+      case "connecting":
+        label = "Connecting to Finnhub…";
+        color = "#856404";
+        bg = "#fff3cd";
+        icon = "⏳";
+        break;
+      case "connected":
+        label = "Connected to Finnhub API";
+        color = "#155724";
+        bg = "#d4edda";
+        icon = "✅";
+        break;
+      case "error":
+        label = "Error Connecting to Finnhub";
+        color = "#721c24";
+        bg = "#f8d7da";
+        icon = "❌";
+        break;
+      default:
+        label = "Unknown";
+        color = "#6c757d";
+        bg = "#e2e3e5";
+        icon = "❓";
+    }
+
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontWeight: 600,
+          fontSize: "1rem",
+          background: bg,
+          color,
+          border: `1px solid ${color}`,
+          borderRadius: 8,
+          padding: "6px 18px",
+          margin: "12px auto 18px",
+          maxWidth: 340,
+          transition: "background 0.3s,color 0.3s",
+        }}
+        aria-live="polite"
+        data-testid="finnhub-status"
+      >
+        <span style={{ fontSize: "1.25em", marginRight: 8 }}>{icon}</span>
+        {label}
+      </div>
+    );
+  }
 
   // Render main content
   return (
@@ -63,6 +125,10 @@ function App() {
         >
           {theme === "light" ? "🌙 Dark" : "☀️ Light"}
         </button>
+
+        {/* Finnhub API Connection Status (top area) */}
+        {renderStatusBadge(connectionStatus)}
+
         <h1>S&amp;P 500 Stock Dashboard</h1>
         <p>
           <strong>Demo: Real-time Finnhub API data for <code>AAPL</code></strong>
