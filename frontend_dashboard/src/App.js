@@ -150,126 +150,113 @@ function App() {
             <div style={{ color: "red", marginBottom: 16 }}>Error: {apiError}</div>
           )}
           {metrics && metrics.metric ? (
-            <div style={{ textAlign: "left", fontSize: "1.08rem", width: "100%", overflowX: "auto" }}>
-              {/* 
-                All indicator values are dynamically fetched from Finnhub API response (AAPL),
-                with each value mapped directly from the required Finnhub metric field for the requested table columns.
-                If a metric is unavailable, renders "N/A".
-               */}
-              <table
+            <div style={{ textAlign: "center", fontSize: "1.13rem", width: "100%", overflowX: "auto" }}>
+              {/* Render only the list/array of raw values in order, no labels/names, 'N/A' for missing */}
+              <div
                 style={{
-                  minWidth: 820,
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  background: "var(--bg-primary)",
-                  boxShadow: "0 2px 8px rgba(25, 118, 210, 0.06)",
-                  borderRadius: 10,
-                  margin: "0 auto"
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "16px",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minHeight: 120,
                 }}
-                aria-label="AAPL Stock Metrics Table"
               >
-                <thead>
-                  <tr style={{ background: "var(--bg-secondary)", color: "var(--text-primary)" }}>
-                    <th style={{ padding: "10px 14px", borderBottom: "2px solid var(--border-color)" }}>Indicator</th>
-                    <th style={{ padding: "10px 14px", borderBottom: "2px solid var(--border-color)" }}>Value</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {
-                    // All table rows mapped as per request field—shown as 'N/A' if missing/null/undefined
-                    [
-                      {
-                        label: "Earnings Per Share (EPS)",
-                        value:
-                          metrics.metric.epsTTM !== undefined && metrics.metric.epsTTM !== null && metrics.metric.epsTTM !== ""
-                            ? metrics.metric.epsTTM
-                            : "N/A"
-                      },
-                      {
-                        label: "P/E Ratio",
-                        value:
-                          metrics.metric.peNormalizedAnnual !== undefined && metrics.metric.peNormalizedAnnual !== null && metrics.metric.peNormalizedAnnual !== ""
-                            ? metrics.metric.peNormalizedAnnual
-                            : "N/A"
-                      },
-                      {
-                        label: "Revenue Growth",
-                        value:
-                          metrics.metric.revenueGrowthTTMYoy !== undefined && metrics.metric.revenueGrowthTTMYoy !== null
-                            ? (metrics.metric.revenueGrowthTTMYoy * 100).toFixed(2) + "%"
-                            : "N/A"
-                      },
-                      {
-                        label: "Return on Equity",
-                        value:
-                          metrics.metric.roeTTM !== undefined && metrics.metric.roeTTM !== null
-                            ? (metrics.metric.roeTTM * 100).toFixed(2) + "%"
-                            : "N/A"
-                      },
-                      {
-                        label: "Free Cash Flow",
-                        value:
-                          metrics.metric.freeCashFlowTTM !== undefined && metrics.metric.freeCashFlowTTM !== null && metrics.metric.freeCashFlowTTM !== ""
-                            ? metrics.metric.freeCashFlowTTM
-                            : "N/A"
-                      },
-                      {
-                        label: "Debt-to-Equity Ratio",
-                        value:
-                          metrics.metric.totalDebt !== undefined &&
-                          metrics.metric.totalDebt !== null &&
-                          metrics.metric.totalEquity !== undefined &&
-                          metrics.metric.totalEquity !== null &&
-                          Number(metrics.metric.totalEquity) !== 0
-                            ? (
-                              Number(metrics.metric.totalDebt) / Number(metrics.metric.totalEquity)
-                            ).toFixed(3)
-                            : "N/A"
-                      },
-                      {
-                        label: "Interest Coverage",
-                        value:
-                          metrics.metric.interestCoverage !== undefined && metrics.metric.interestCoverage !== null && metrics.metric.interestCoverage !== ""
-                            ? metrics.metric.interestCoverage
-                            : "N/A"
-                      },
-                      {
-                        label: "Gross Margin",
-                        value:
-                          metrics.metric.grossMarginTTM !== undefined && metrics.metric.grossMarginTTM !== null
-                            ? (metrics.metric.grossMarginTTM * 100).toFixed(2) + "%"
-                            : "N/A"
-                      },
-                      {
-                        label: "Net Margin",
-                        value:
-                          metrics.metric.netProfitMarginTTM !== undefined && metrics.metric.netProfitMarginTTM !== null
-                            ? (metrics.metric.netProfitMarginTTM * 100).toFixed(2) + "%"
-                            : "N/A"
-                      },
-                      {
-                        label: "Price-to-Book Ratio",
-                        value:
-                          metrics.metric.pbAnnual !== undefined && metrics.metric.pbAnnual !== null && metrics.metric.pbAnnual !== ""
-                            ? metrics.metric.pbAnnual
-                            : "N/A"
-                      },
-                      {
-                        label: "Dividend Yield",
-                        value:
-                          metrics.metric.dividendYieldIndicatedAnnual !== undefined && metrics.metric.dividendYieldIndicatedAnnual !== null
-                            ? (metrics.metric.dividendYieldIndicatedAnnual * 100).toFixed(2) + "%"
-                            : "N/A"
-                      }
-                    ].map((row) => (
-                      <tr key={row.label}>
-                        <td>{row.label}</td>
-                        <td>{row.value}</td>
-                      </tr>
-                    ))
-                  }
-                </tbody>
-              </table>
+                {
+                  [
+                    // 1. metric.epsTTM
+                    metrics.metric.epsTTM !== undefined &&
+                    metrics.metric.epsTTM !== null &&
+                    metrics.metric.epsTTM !== ""
+                      ? metrics.metric.epsTTM
+                      : "N/A",
+
+                    // 2. metric.peNormalizedAnnual
+                    metrics.metric.peNormalizedAnnual !== undefined &&
+                    metrics.metric.peNormalizedAnnual !== null &&
+                    metrics.metric.peNormalizedAnnual !== ""
+                      ? metrics.metric.peNormalizedAnnual
+                      : "N/A",
+
+                    // 3. metric.revenueGrowthTTMYoy
+                    metrics.metric.revenueGrowthTTMYoy !== undefined &&
+                    metrics.metric.revenueGrowthTTMYoy !== null
+                      ? metrics.metric.revenueGrowthTTMYoy
+                      : "N/A",
+
+                    // 4. metric.roeTTM
+                    metrics.metric.roeTTM !== undefined &&
+                    metrics.metric.roeTTM !== null
+                      ? metrics.metric.roeTTM
+                      : "N/A",
+
+                    // 5. metric.freeCashFlowTTM
+                    metrics.metric.freeCashFlowTTM !== undefined &&
+                    metrics.metric.freeCashFlowTTM !== null &&
+                    metrics.metric.freeCashFlowTTM !== ""
+                      ? metrics.metric.freeCashFlowTTM
+                      : "N/A",
+
+                    // 6. calculated (metric.totalDebt/metric.totalEquity)
+                    metrics.metric.totalDebt !== undefined &&
+                    metrics.metric.totalDebt !== null &&
+                    metrics.metric.totalEquity !== undefined &&
+                    metrics.metric.totalEquity !== null &&
+                    Number(metrics.metric.totalEquity) !== 0
+                      ? Number(metrics.metric.totalDebt) / Number(metrics.metric.totalEquity)
+                      : "N/A",
+
+                    // 7. metric.interestCoverage
+                    metrics.metric.interestCoverage !== undefined &&
+                    metrics.metric.interestCoverage !== null &&
+                    metrics.metric.interestCoverage !== ""
+                      ? metrics.metric.interestCoverage
+                      : "N/A",
+
+                    // 8. metric.grossMarginTTM
+                    metrics.metric.grossMarginTTM !== undefined &&
+                    metrics.metric.grossMarginTTM !== null
+                      ? metrics.metric.grossMarginTTM
+                      : "N/A",
+
+                    // 9. metric.netProfitMarginTTM
+                    metrics.metric.netProfitMarginTTM !== undefined &&
+                    metrics.metric.netProfitMarginTTM !== null
+                      ? metrics.metric.netProfitMarginTTM
+                      : "N/A",
+
+                    // 10. metric.pbAnnual
+                    metrics.metric.pbAnnual !== undefined &&
+                    metrics.metric.pbAnnual !== null &&
+                    metrics.metric.pbAnnual !== ""
+                      ? metrics.metric.pbAnnual
+                      : "N/A",
+
+                    // 11. metric.dividendYieldIndicatedAnnual
+                    metrics.metric.dividendYieldIndicatedAnnual !== undefined &&
+                    metrics.metric.dividendYieldIndicatedAnnual !== null
+                      ? metrics.metric.dividendYieldIndicatedAnnual
+                      : "N/A",
+                  ].map((value, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        padding: "11px 0",
+                        width: "100%",
+                        fontFamily: "monospace",
+                        background: "var(--bg-primary)",
+                        color: "var(--text-primary)",
+                        borderBottom: idx !== 10 ? "1px solid var(--border-color)" : "none",
+                        fontWeight: 600,
+                        fontSize: "1.22em",
+                      }}
+                      data-testid={`metric-value-${idx}`}
+                    >
+                      {value}
+                    </div>
+                  ))
+                }
+              </div>
             </div>
           ) : (
             !loading &&
