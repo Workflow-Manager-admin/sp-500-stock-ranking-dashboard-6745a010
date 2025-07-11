@@ -115,6 +115,10 @@ function Dashboard({ ticker, setApiStatus, apiStatus, apiError }) {
     <DashRoot>
       <DashLeft>
         {getApiStatusUI()}
+        <ApiKeyBox>
+          <ApiKeyLabel>Active Finnhub API Key:</ApiKeyLabel>
+          <ApiKeyValue>d1omsf9r01quemda0sugd1omsf9r01quemda0sv0</ApiKeyValue>
+        </ApiKeyBox>
         <h1>
           {company?.name || ticker}
           <Badge $type={disposition}>{disposition}</Badge>
@@ -215,6 +219,37 @@ const DashRoot = styled.div`
     flex-direction: column;
     gap: 32px;
   }
+`;
+
+// API Key info section: lightweight and out of main content path
+const ApiKeyBox = styled.div`
+  background: #f2f7fb;
+  color: #144482;
+  border-radius: 8px;
+  font-size: 0.99em;
+  margin-bottom: 14px;
+  padding: 7px 18px 7px 16px;
+  box-shadow: 0 1px 2px rgba(30,40,70,.04);
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+`;
+
+const ApiKeyLabel = styled.span`
+  font-weight: 500;
+  margin-right: 4px;
+  color: #1976d2;
+`;
+
+const ApiKeyValue = styled.span`
+  font-family: "Menlo", "Consolas", "monospace";
+  font-weight: 600;
+  color: #1976d2;
+  background: #eaf1fa;
+  padding: 1px 10px 2px 9px;
+  border-radius: 4px;
+  font-size: 1em;
+  user-select: all;
 `;
 
 const DashLeft = styled.div`
