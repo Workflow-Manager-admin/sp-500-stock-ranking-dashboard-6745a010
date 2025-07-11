@@ -2,9 +2,11 @@ import axios from "axios";
 
 /**
  * PUBLIC_INTERFACE
- * Fetches comprehensive stock metrics from a hardcoded Finnhub endpoint for AAPL,
- * logs detailed errors with timestamps, and provides a diagnostic error message for UI display.
- *
+ * Fetches comprehensive stock metrics from the ONLY allowed Finnhub endpoint for AAPL.
+ * No alternate endpoint, key, environment variable, or dynamic configuration is permitted.
+ * All requests use:
+ *   https://finnhub.io/api/v1/stock/metric?symbol=AAPL&metric=all&token=d1omsf9r01quemda0sugd1omsf9r01quemda0sv0
+ * 
  * @returns {Promise<{metric: object, chart: array, c?: number, d?: number, dp?: number, pc?: number}>}
  * @throws {Error} When fetch fails, includes descriptive, actionable info and iso timestamp.
  */
@@ -12,23 +14,18 @@ export async function getStockData() {
   const FINNHUB_ENDPOINT =
     "https://finnhub.io/api/v1/stock/metric?symbol=AAPL&metric=all&token=d1omsf9r01quemda0sugd1omsf9r01quemda0sv0";
 
-  const isProd = process.env.NODE_ENV === "production";
-  if (!isProd) {
-    // eslint-disable-next-line
-    console.log(`[Finnhub] Using hardcoded endpoint: ${FINNHUB_ENDPOINT.replace(/token=([^&]+)/, "token=[REDACTED]")}`);
-  }
+  // Logging for debugging - always log endpoint as redacted, no env logic
+  // eslint-disable-next-line
+  console.log(`[Finnhub] Using ONLY endpoint: ${FINNHUB_ENDPOINT.replace(/token=([^&]+)/, "token=[REDACTED]")}`);
 
   let metricRes;
   try {
     metricRes = await axios.get(FINNHUB_ENDPOINT);
-    if (!isProd) {
-      // eslint-disable-next-line
-      console.log(`[Finnhub] Response status: ${metricRes.status}`, metricRes.data);
-    }
+    // eslint-disable-next-line
+    console.log(`[Finnhub] Response status: ${metricRes.status}`, metricRes.data);
   } catch (err) {
     // Add detailed logging and build actionable error message
-    const errTime =
-      new Date().toISOString();
+    const errTime = new Date().toISOString();
     let msg = `[Finnhub] API call error (${errTime}):`;
     let details = "";
     if (err.response) {
@@ -62,10 +59,8 @@ export async function getStockData() {
       });
     }
   } catch (chartErr) {
-    if (!isProd) {
-      // eslint-disable-next-line
-      console.error("[Finnhub] Chart generation failed:", chartErr);
-    }
+    // eslint-disable-next-line
+    console.error("[Finnhub] Chart generation failed:", chartErr);
   }
 
   const fallbackNum = (n) => (typeof n === "number" && !isNaN(n) ? n : undefined);
