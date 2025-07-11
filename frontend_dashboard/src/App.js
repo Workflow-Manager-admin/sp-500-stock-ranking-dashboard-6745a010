@@ -1,96 +1,130 @@
-import React, { useState, useEffect } from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useState, useEffect } from "react";
+import "./App.css";
 
-// PUBLIC_INTERFACE
+/**
+ * PUBLIC_INTERFACE
+ * Main Dashboard App for S&P 500 stock ranking.
+ * Fetches and displays real-time AAPL stock metrics from Finnhub.
+ */
 function App() {
-  const [theme, setTheme] = useState('light');
-  const [aaplMetrics, setAaplMetrics] = useState(null);
+  const [theme, setTheme] = useState("light");
+  const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
 
-  // Effect to apply theme to document element
+  // Effect: apply theme to <html>
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
-  // Effect to fetch Finnhub AAPL metrics on mount
+  // PUBLIC_INTERFACE
+  // Fetch Finnhub metrics for AAPL on mount
   useEffect(() => {
-    // PUBLIC_INTERFACE
     /**
-     * Fetches metric data for AAPL from Finnhub
-     * API key is read from REACT_APP_FINNHUB_API_KEY, fallback to sample
+     * Fetch metrics for AAPL from Finnhub API.
+     * Uses REACT_APP_FINNHUB_API_KEY (if set), otherwise falls back to default demo key.
      */
-    const fetchAaplMetrics = async () => {
+    async function fetchAaplMetrics() {
       setLoading(true);
       setApiError(null);
-      const defaultApiKey = 'd1omsf9r01quemda0sugd1omsf9r01quemda0sv0';
-      const key = process.env.REACT_APP_FINNHUB_API_KEY || defaultApiKey;
+      const fallbackKey = "d1omsf9r01quemda0sugd1omsf9r01quemda0sv0";
+      const key =
+        (typeof process !== "undefined" &&
+          process.env &&
+          process.env.REACT_APP_FINNHUB_API_KEY) ||
+        fallbackKey;
       const url = `https://finnhub.io/api/v1/stock/metric?symbol=AAPL&metric=all&token=${key}`;
       try {
         const res = await fetch(url);
         if (!res.ok) throw new Error(`API responded ${res.status}`);
         const data = await res.json();
-        setAaplMetrics(data);
-        // For demo: also output to console
+        setMetrics(data);
+        // For debug confirmation
         // eslint-disable-next-line no-console
-        console.log('AAPL metrics:', data);
+        console.log("AAPL Metrics fetched from Finnhub:", data);
       } catch (err) {
         setApiError(err.message);
+        setMetrics(null);
       } finally {
         setLoading(false);
       }
-    };
+    }
     fetchAaplMetrics();
   }, []);
 
   // PUBLIC_INTERFACE
-  const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
-  };
+  // Toggle light/dark theme
+  const toggleTheme = () => setTheme((t) => (t === "light" ? "dark" : "light"));
 
+  // Render main content
   return (
     <div className="App">
       <header className="App-header">
-        <button 
-          className="theme-toggle" 
+        <button
+          className="theme-toggle"
           onClick={toggleTheme}
-          aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
         >
-          {theme === 'light' ? '🌙 Dark' : '☀️ Light'}
+          {theme === "light" ? "🌙 Dark" : "☀️ Light"}
         </button>
-        <img src={logo} className="App-logo" alt="logo" />
+        <h1>S&amp;P 500 Stock Dashboard</h1>
         <p>
-          Edit <code>src/App.js</code> and save to reload.
+          <strong>Demo: Real-time Finnhub API data for <code>AAPL</code></strong>
         </p>
-        <p>
-          Current theme: <strong>{theme}</strong>
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
+        <section
+          style={{
+            background: "var(--bg-secondary)",
+            padding: 20,
+            borderRadius: 12,
+            margin: "2rem auto",
+            maxWidth: 480,
+            boxShadow: "0 2px 8px rgba(25, 118, 210, 0.07)",
+            minHeight: 180,
+          }}
         >
-          Learn React
-        </a>
-        <div style={{marginTop: '2rem', width: '100%', maxWidth: 600}}>
-          <h2>Finnhub AAPL Stock Metrics</h2>
-          {loading && <div>Loading AAPL data...</div>}
-          {apiError && <div style={{color: 'red'}}>Error: {apiError}</div>}
-          {aaplMetrics && aaplMetrics.metric ?
-            <div>
-              <div style={{textAlign: "left", fontSize: "1rem"}}>
-                <strong>52 Week High:</strong> {aaplMetrics.metric['52WeekHigh']}<br />
-                <strong>52 Week Low:</strong> {aaplMetrics.metric['52WeekLow']}<br />
-                <strong>Market Cap (USD):</strong> {aaplMetrics.metric.marketCapitalization}<br />
-                <strong>PE Ratio (TTM):</strong> {aaplMetrics.metric.peTTM}<br />
-                {/* Add more AAPL metrics as needed */}
+          <h2 style={{margin: "0 0 0.75rem 0"}}>AAPL Stock Metrics</h2>
+          {loading && <div>Loading metrics...</div>}
+          {apiError && (
+            <div style={{ color: "red", marginBottom: 16 }}>Error: {apiError}</div>
+          )}
+          {metrics && metrics.metric ? (
+            <div style={{ textAlign: "left", fontSize: "1.08rem" }}>
+              <div>
+                <strong>52 Week High:</strong> {metrics.metric["52WeekHigh"]}
               </div>
+              <div>
+                <strong>52 Week Low:</strong> {metrics.metric["52WeekLow"]}
+              </div>
+              <div>
+                <strong>Market Cap (USD):</strong>{" "}
+                {metrics.metric.marketCapitalization}
+              </div>
+              <div>
+                <strong>P/E Ratio (TTM):</strong> {metrics.metric.peTTM}
+              </div>
+              <div>
+                <strong>Dividend Yield (%):</strong>{" "}
+                {
+                  metrics.metric.dividendYieldIndicatedAnnual
+                }
+              </div>
+              {/* Add more metrics as required for confirmation */}
             </div>
-            : !loading && !apiError && <div>No metric data found.</div>
-          }
-        </div>
+          ) : (
+            !loading &&
+            !apiError && <div>No metric data found.</div>
+          )}
+        </section>
+        <footer style={{ marginTop: 24, color: "var(--text-secondary)" }}>
+          <a
+            className="App-link"
+            href="https://finnhub.io/docs/api#stock-metrics"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Finnhub API Docs
+          </a>
+        </footer>
       </header>
     </div>
   );
