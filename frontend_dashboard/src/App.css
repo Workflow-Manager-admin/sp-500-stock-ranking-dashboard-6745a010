@@ -102,3 +102,32 @@
     font-size: 12px;
   }
 }
+
+/* Stock dashboard styles */
+.sp500-sidebar {
+  min-width: 140px;
+  box-shadow: 1px 0 7px rgba(23, 71, 138, 0.04);
+}
+.sidebar-ticker.selected {
+  background: #e3f2fd !important;
+  color: #1976d2 !important;
+}
+.sidebar-ticker:hover:not(.selected){
+  background: #eaf3fc;
+}
+@media (max-width: 1024px) {
+  .sp500-sidebar {
+    width: 115px !important;
+  }
+  .sidebar-ticker span:nth-child(2) {
+    display: none;
+  }
+}
+.sp500-search {
+  outline: none;
+}
+@media (max-width: 650px) {
+  .App .sp500-sidebar { display: none }
+  .theme-toggle { right: 6px !important; }
+  main { padding: 10px !important; }
+}

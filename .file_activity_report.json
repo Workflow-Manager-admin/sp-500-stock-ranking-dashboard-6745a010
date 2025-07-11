@@ -1,0 +1,158 @@
+{
+    "top_n_overall": [
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/package.json",
+            "count": 133
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/src/App.js",
+            "count": 53
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/src/App.css",
+            "count": 52
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/src/index.js",
+            "count": 45
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/post_process_status.lock",
+            "count": 45
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/src/index.css",
+            "count": 44
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/eslint.config.mjs",
+            "count": 44
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/public/index.html",
+            "count": 43
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/src/logo.svg",
+            "count": 42
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/README.md",
+            "count": 42
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/public/robots.txt",
+            "count": 42
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/public/logo512.png",
+            "count": 42
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/public/favicon.ico",
+            "count": 42
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/public/manifest.json",
+            "count": 42
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/public/logo192.png",
+            "count": 42
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/src/setupTests.js",
+            "count": 42
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/src/App.test.js",
+            "count": 42
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/.status",
+            "count": 41
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/post_process.log",
+            "count": 39
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/package-lock.json",
+            "count": 39
+        }
+    ],
+    "top_n_last_10_min_accessed": [
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/package.json",
+            "count": 94
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/src/App.js",
+            "count": 12
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/src/App.css",
+            "count": 11
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/src/index.js",
+            "count": 6
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/post_process_status.lock",
+            "count": 6
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/eslint.config.mjs",
+            "count": 6
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/src/index.css",
+            "count": 5
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/public/index.html",
+            "count": 4
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/src/logo.svg",
+            "count": 3
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/README.md",
+            "count": 3
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/src/App.test.js",
+            "count": 3
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/src/setupTests.js",
+            "count": 3
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/public/favicon.ico",
+            "count": 3
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/public/logo192.png",
+            "count": 3
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/public/logo512.png",
+            "count": 3
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/public/manifest.json",
+            "count": 3
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/public/robots.txt",
+            "count": 3
+        },
+        {
+            "file": "/home/kavia/workspace/code-generation/sp-500-stock-ranking-dashboard-6745a010/frontend_dashboard/.status",
+            "count": 2
+        }
+    ]
+}
