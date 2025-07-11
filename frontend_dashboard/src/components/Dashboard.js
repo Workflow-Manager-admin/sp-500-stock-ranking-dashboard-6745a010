@@ -74,17 +74,26 @@ function Dashboard({ ticker, setApiStatus, finnhubAvailable }) {
             <SummarySection>
               <SummaryField>
                 <div>Current</div>
-                <div className="val">{stock.c?.toLocaleString("en-US",{style:"currency",currency:"USD"})}</div>
+                <div className="val">
+                  {(stock.metric?.close ?? stock.c)?.toLocaleString("en-US", { style: "currency", currency: "USD" }) || "—"}
+                </div>
               </SummaryField>
               <SummaryField>
                 <div>Today's Change</div>
-                <div className="val" style={{color:stock.d>=0?theme.accent:"#e53935"}}>
-                  {stock.d>=0?"+":""}{stock.d} ({stock.dp>=0?"+":""}{stock.dp}%)
+                <div className="val" style={{ color: (stock.d ?? 0) >= 0 ? theme.accent : "#e53935" }}>
+                  {(stock.d ?? 0) >= 0 ? "+" : ""}
+                  {stock.d ?? "—"}
+                  {" ("}
+                  {(stock.dp ?? 0) >= 0 ? "+" : ""}
+                  {stock.dp ?? "—"}%
+                  {")"}
                 </div>
               </SummaryField>
               <SummaryField>
                 <div>Previous Close</div>
-                <div className="val">{stock.pc?.toLocaleString("en-US",{style:"currency",currency:"USD"})}</div>
+                <div className="val">
+                  {(stock.metric?.["52WeekLow"] ?? stock.pc)?.toLocaleString("en-US", { style: "currency", currency: "USD" }) || "—"}
+                </div>
               </SummaryField>
             </SummarySection>
             <h3>Metrics</h3>

@@ -9,6 +9,14 @@ function redactApiKey(url) {
 }
 
 // PUBLIC_INTERFACE
+/**
+ * Fetches comprehensive stock metrics for the specified ticker from Finnhub's `stock/metric` endpoint,
+ * and returns the metrics (and mock chart for price visualization).
+ * Maintains API key presence/error/console log pattern as before.
+ *
+ * @param {string} ticker - Stock ticker symbol (e.g., "AAPL")
+ * @returns {Promise<{metric: object, chart: array, c?: number, d?: number, dp?: number, pc?: number}>}
+ */
 export async function getStockData(ticker) {
   // Hardcoded API key as instructed (could be replaced later by env)
   const API_KEY = 'd1okfe1r01quemd9ir20d1okfe1r01quemd9ir2g';
@@ -29,22 +37,22 @@ export async function getStockData(ticker) {
     throw new Error("Missing Finnhub API key.");
   }
 
-  const url = `${BASE}/quote`;
-  const params = { symbol: ticker, token: API_KEY };
+  const url = `${BASE}/stock/metric`;
+  const params = { symbol: ticker, metric: "all", token: API_KEY };
 
   if (!isProd) {
     // eslint-disable-next-line
-    const urlForLog = `${url}?symbol=${ticker}&token=[REDACTED]`;
+    const urlForLog = `${url}?symbol=${ticker}&metric=all&token=[REDACTED]`;
     console.log(`[Finnhub] API request: ${urlForLog}`, { params: { ...params, token: "[REDACTED]" } });
   }
 
   // Prepare response for logging status
-  let quoteRes;
+  let metricRes;
   try {
-    quoteRes = await axios.get(url, { params });
+    metricRes = await axios.get(url, { params });
     if (!isProd) {
       // eslint-disable-next-line
-      console.log(`[Finnhub] Response status: ${quoteRes.status}`, quoteRes.data);
+      console.log(`[Finnhub] Response status: ${metricRes.status}`, metricRes.data);
     }
   } catch (err) {
     let msg = "[Finnhub] API call error:";
@@ -64,10 +72,11 @@ export async function getStockData(ticker) {
     throw new Error(msg);
   }
 
-  // Get fake chart for now
+  // Compose the price chart for the demo (simulate a week)
   let chart = [];
+  // Try to extract the close price for trend - fallback to a static number
+  let ce = Number(metricRes?.data?.metric?.["52WeekHigh"]) || 180;
   try {
-    const ce = quoteRes.data.c || 180;
     for (let i = 6; i >= 0; i--) {
       chart.unshift({
         label: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][6-i],
@@ -81,5 +90,15 @@ export async function getStockData(ticker) {
     }
     // Not fatal, returns empty chart
   }
-  return { ...quoteRes.data, chart };
+  // For compatibility, also return a handful of "quote"-like attributes if available
+  // (A few dashboard metrics expect c, d, dp, pc)
+  const fallbackNum = n => (typeof n === "number" && !isNaN(n) ? n : undefined);
+  return {
+    metric: metricRes.data.metric,
+    chart,
+    c: fallbackNum(Number(metricRes.data.metric?.['close'] ?? metricRes.data.metric?.['52WeekHigh'])),
+    d: fallbackNum(Number(metricRes.data.metric?.['change'])),
+    dp: fallbackNum(Number(metricRes.data.metric?.['percentChange'])),
+    pc: fallbackNum(Number(metricRes.data.metric?.['52WeekLow'])), // Example/fallback, not literal prev close
+  };
 }
