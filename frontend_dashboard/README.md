@@ -1,82 +1,56 @@
-# Lightweight React Template for KAVIA
+# S&P 500 Stock Ranking Dashboard (frontend_dashboard)
 
-This project provides a minimal React template with a clean, modern UI and minimal dependencies.
+This React application is a real-time dashboard for ranking S&P 500 companies and providing Buy/Sell/Hold dispositions based on 10 performance parameters using Finnhub API data.
 
 ## Features
 
-- **Lightweight**: No heavy UI frameworks - uses only vanilla CSS and React
-- **Modern UI**: Clean, responsive design with KAVIA brand styling
-- **Fast**: Minimal dependencies for quick loading times
-- **Simple**: Easy to understand and modify
+- Real-time fetch of AAPL stock data from Finnhub (ready for full S&P 500 scale-up)
+- Company ranking based on multiple performance metrics
+- Buy/Sell/Hold disposition badge, color-coded for clarity
+- Rich dashboard: charts, tables, summary panels
+- Responsive modern minimal UI (light theme, blue/green primary/secondary/accent)
+- Side navigation with company search and filtering
 
-## Getting Started
+## Layout
 
-In the project directory, you can run:
+- **Top Nav Bar:** App title, API status, search bar
+- **Side Navigation:** List of companies for selection
+- **Main Content:** Stock details, metric charts, disposition, performance table
+- **Summary/Disposition Panel:** Overview of Buy/Hold/Sell distribution
 
-### `npm start`
+## Environment Configuration
 
-Runs the app in development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Create a `.env` file in the project root with:
+```
+REACT_APP_FINNHUB_API_KEY=your_finnhub_api_key_here
+```
+Finnhub API key is required for real-time stock data.
 
-### `npm test`
+## Development
 
-Launches the test runner in interactive watch mode.
+Install dependencies and run:
 
-### `npm run build`
+```sh
+npm install
+npm start
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Open [http://localhost:3000](http://localhost:3000) to view the dashboard.
+
+## Structure Overview
+
+- `src/components/`: UI components (NavBar, SideBar, Dashboard, etc.)
+- `src/services/`: Finnhub API integration, data utilities
+- `src/App.js`: Main layout & state management
+- `src/assets/`: Reusable assets & styling
 
 ## Customization
 
-### Colors
+Modify company list and metrics easily in `src/data/companies.js` and `src/data/metrics.js`.
 
-The main brand colors are defined as CSS variables in `src/App.css`:
+## Extending to all S&P 500
 
-```css
-:root {
-  --kavia-orange: #E87A41;
-  --kavia-dark: #1A1A1A;
-  --text-color: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.7);
-  --border-color: rgba(255, 255, 255, 0.1);
-}
-```
+Update company list and ensure rate limits are observed on bulk Finnhub requests.
 
-### Components
-
-This template uses pure HTML/CSS components instead of a UI framework. You can find component styles in `src/App.css`. 
-
-Common components include:
-- Buttons (`.btn`, `.btn-large`)
-- Container (`.container`)
-- Navigation (`.navbar`)
-- Typography (`.title`, `.subtitle`, `.description`)
-
-## Learn More
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+---
+Built with React, styled-components, recharts for data visualization.

@@ -1,8 +1,8 @@
-import { render, screen } from '@testing-library/react';
-import App from './App';
+import { render, screen } from "@testing-library/react";
+import App from "./App";
 
-test('renders learn react link', () => {
+test("renders S&P 500 Stock Dashboard and AAPL company", () => {
   render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+  expect(screen.getByText(/S&P 500 Stock Dashboard/i)).toBeInTheDocument();
+  expect(screen.getByText(/Apple Inc\./i)).toBeInTheDocument();
 });
