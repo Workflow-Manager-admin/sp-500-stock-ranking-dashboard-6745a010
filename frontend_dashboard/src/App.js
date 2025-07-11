@@ -150,27 +150,98 @@ function App() {
             <div style={{ color: "red", marginBottom: 16 }}>Error: {apiError}</div>
           )}
           {metrics && metrics.metric ? (
-            <div style={{ textAlign: "left", fontSize: "1.08rem" }}>
-              <div>
-                <strong>52 Week High:</strong> {metrics.metric["52WeekHigh"]}
-              </div>
-              <div>
-                <strong>52 Week Low:</strong> {metrics.metric["52WeekLow"]}
-              </div>
-              <div>
-                <strong>Market Cap (USD):</strong>{" "}
-                {metrics.metric.marketCapitalization}
-              </div>
-              <div>
-                <strong>P/E Ratio (TTM):</strong> {metrics.metric.peTTM}
-              </div>
-              <div>
-                <strong>Dividend Yield (%):</strong>{" "}
-                {
-                  metrics.metric.dividendYieldIndicatedAnnual
-                }
-              </div>
-              {/* Add more metrics as required for confirmation */}
+            <div style={{ textAlign: "left", fontSize: "1.08rem", width: "100%", overflowX: "auto" }}>
+              <table
+                style={{
+                  minWidth: 820,
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  background: "var(--bg-primary)",
+                  boxShadow: "0 2px 8px rgba(25, 118, 210, 0.06)",
+                  borderRadius: 10,
+                  margin: "0 auto"
+                }}
+                aria-label="AAPL Stock Metrics Table"
+              >
+                <thead>
+                  <tr style={{ background: "var(--bg-secondary)", color: "var(--text-primary)" }}>
+                    <th style={{ padding: "10px 14px", borderBottom: "2px solid var(--border-color)" }}>Indicator</th>
+                    <th style={{ padding: "10px 14px", borderBottom: "2px solid var(--border-color)" }}>Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Earnings Per Share (TTM)</td>
+                    <td>{metrics.metric.epsTTM ?? "—"}</td>
+                  </tr>
+                  <tr>
+                    <td>Price-to-Earnings Ratio (Normalized, Annual)</td>
+                    <td>{metrics.metric.peNormalizedAnnual ?? "—"}</td>
+                  </tr>
+                  <tr>
+                    <td>Revenue Growth YoY (TTM)</td>
+                    <td>
+                      {metrics.metric.revenueGrowthTTMYoy !== undefined && metrics.metric.revenueGrowthTTMYoy !== null
+                        ? (metrics.metric.revenueGrowthTTMYoy * 100).toFixed(2) + "%"
+                        : "—"}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Return on Equity (ROE, TTM)</td>
+                    <td>
+                      {metrics.metric.roeTTM !== undefined && metrics.metric.roeTTM !== null
+                        ? (metrics.metric.roeTTM * 100).toFixed(2) + "%"
+                        : "—"}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Free Cash Flow (TTM)</td>
+                    <td>{metrics.metric.freeCashFlowTTM ?? "—"}</td>
+                  </tr>
+                  <tr>
+                    <td>Debt-to-Equity Ratio</td>
+                    <td>
+                      {(metrics.metric.totalDebt != null &&
+                        metrics.metric.totalEquity != null &&
+                        Number(metrics.metric.totalEquity) !== 0)
+                        ? (Number(metrics.metric.totalDebt) / Number(metrics.metric.totalEquity)).toFixed(3)
+                        : "—"}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Interest Coverage Ratio</td>
+                    <td>{metrics.metric.interestCoverage ?? "—"}</td>
+                  </tr>
+                  <tr>
+                    <td>Gross Profit Margin (TTM)</td>
+                    <td>
+                      {metrics.metric.grossMarginTTM !== undefined && metrics.metric.grossMarginTTM !== null
+                        ? (metrics.metric.grossMarginTTM * 100).toFixed(2) + "%"
+                        : "—"}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Net Profit Margin (TTM)</td>
+                    <td>
+                      {metrics.metric.netProfitMarginTTM !== undefined && metrics.metric.netProfitMarginTTM !== null
+                        ? (metrics.metric.netProfitMarginTTM * 100).toFixed(2) + "%"
+                        : "—"}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Price-to-Book Ratio (Annual)</td>
+                    <td>{metrics.metric.pbAnnual ?? "—"}</td>
+                  </tr>
+                  <tr>
+                    <td>Dividend Yield (Indicated Annual)</td>
+                    <td>
+                      {metrics.metric.dividendYieldIndicatedAnnual !== undefined && metrics.metric.dividendYieldIndicatedAnnual !== null
+                        ? (metrics.metric.dividendYieldIndicatedAnnual * 100).toFixed(2) + "%"
+                        : "—"}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           ) : (
             !loading &&
