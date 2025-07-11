@@ -5,8 +5,18 @@ import { getCompanyByTicker } from "../data/companies";
 import { getPerformanceMetrics, evaluateDisposition } from "../data/metrics";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
-// PUBLIC_INTERFACE
-function Dashboard({ ticker, setApiStatus }) {
+/**
+ * PUBLIC_INTERFACE
+ * Dashboard displays stock details, metrics, and summary.
+ * Now displays real-time API connection status visibly on the dashboard.
+ *
+ * @param {object} props
+ * @param {string} props.ticker - Stock ticker symbol.
+ * @param {function} props.setApiStatus - Callback to update API status in parent.
+ * @param {string} [props.apiStatus] - API fetch status ("loading", "ok", "error", "idle").
+ * @param {string} [props.apiError] - Optional error message from last API call (if any).
+ */
+function Dashboard({ ticker, setApiStatus, apiStatus, apiError }) {
   const [loading, setLoading] = useState(true);
   const [stock, setStock] = useState(null);
   const [error, setError] = useState();
@@ -45,9 +55,55 @@ function Dashboard({ ticker, setApiStatus }) {
   const metrics = getPerformanceMetrics(stock, ticker);
   const disposition = evaluateDisposition(metrics);
 
+  // Helper: Map apiStatus to color/message
+  const getApiStatusUI = () => {
+    if (!apiStatus || apiStatus === "idle") {
+      // Initial load/idle = treat as loading
+      return (
+        <ApiStatusBox $color="#ffda61">
+          <b>API Status:</b> Connecting...
+        </ApiStatusBox>
+      );
+    }
+    if (apiStatus === "loading") {
+      return (
+        <ApiStatusBox $color="#ffda61">
+          <b>API Status:</b> Connecting...
+        </ApiStatusBox>
+      );
+    }
+    if (apiStatus === "ok") {
+      return (
+        <ApiStatusBox $color="#43a047">
+          <b>API Status:</b> Connected
+        </ApiStatusBox>
+      );
+    }
+    if (apiStatus === "error") {
+      // Prefer dashboard-caught error, fallback to apiError
+      let msg = "";
+      if (error) { // handled as React node
+        msg = typeof error === "string"
+          ? error
+          : (error?.props?.children ?? "Unknown error");
+      } else if (apiError) {
+        msg = String(apiError);
+      } else {
+        msg = "Unknown error";
+      }
+      return (
+        <ApiStatusBox $color="#e53935">
+          <b>API Status:</b> Error: <span style={{fontWeight:400}}>{msg}</span>
+        </ApiStatusBox>
+      );
+    }
+    return null;
+  };
+
   return (
     <DashRoot>
       <DashLeft>
+        {getApiStatusUI()}
         <h1>
           {company?.name || ticker}
           <Badge $type={disposition}>{disposition}</Badge>
@@ -178,6 +234,25 @@ const ErrorMsg = styled.div`
   color: #e53935;
   margin-top: 28px;
   font-weight: bold;
+`;
+
+// API status indicator styling
+const ApiStatusBox = styled.div`
+  background: ${({ $color }) => $color || "#eee"};
+  color: ${({ $color }) =>
+    $color === "#43a047"
+      ? "#fff"
+      : $color === "#e53935"
+      ? "#fff"
+      : "#975f06"};
+  padding: 8px 22px;
+  border-radius: 8px;
+  font-size: 1.04em;
+  font-weight: 600;
+  margin: 0 0 20px 0;
+  display: inline-block;
+  box-shadow: 0 1px 3px rgba(20,100,50,0.04);
+  letter-spacing: 0.01em;
 `;
 
 const Badge = styled.span`

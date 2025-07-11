@@ -30,12 +30,17 @@ const GlobalStyle = createGlobalStyle`
   }
 `;
 
-// PUBLIC_INTERFACE
+/**
+ * PUBLIC_INTERFACE
+ * App is the main layout and state management root for the dashboard.
+ * It now tracks and forwards real-time API status and last error message.
+ */
 function App() {
   const [selectedTicker, setSelectedTicker] = useState("AAPL");
   const [search, setSearch] = useState("");
   const [companyList, setCompanyList] = useState(getCompanyList());
   const [apiStatus, setApiStatus] = useState("idle");
+  const [apiError, setApiError] = useState(""); // Track last API error message
 
   // Filter function for search
   const handleSearch = (value) => {
@@ -53,6 +58,9 @@ function App() {
   const handleSelectTicker = (ticker) => {
     setSelectedTicker(ticker);
   };
+
+  // Patch: Pass error message down to Dashboard and watch setApiStatus
+  // Hook into Dashboard below to set error if apiStatus is error
 
   // Remove API key warnings: not needed, API/token now hardcoded in finnhub.js
 
@@ -74,7 +82,17 @@ function App() {
         <Main>
           <Dashboard
             ticker={selectedTicker}
-            setApiStatus={setApiStatus}
+            setApiStatus={(status) => {
+              setApiStatus(status);
+              if (status === "error") {
+                // Intentionally set error as "Error fetching Finnhub data"
+                setApiError("Error fetching Finnhub data");
+              } else if (status === "loading") {
+                setApiError(""); // Reset on new fetch
+              }
+            }}
+            apiStatus={apiStatus}
+            apiError={apiError}
           />
         </Main>
       </Container>
