@@ -10,7 +10,7 @@ import axios from "axios";
  */
 export async function getStockData() {
   const FINNHUB_ENDPOINT =
-    "https://finnhub.io/api/v1/stock/metric?symbol=AAPL&metric=all&token=d1on19hr01quemda1r1gd1on19hr01quemda1r20";
+    "https://finnhub.io/api/v1/stock/metric?symbol=AAPL&metric=all&token=d1omsf9r01quemda0sugd1omsf9r01quemda0sv0";
 
   const isProd = process.env.NODE_ENV === "production";
   if (!isProd) {
