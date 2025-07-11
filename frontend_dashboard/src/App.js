@@ -22,6 +22,11 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
 
+  // Company info state
+  const [companyName, setCompanyName] = useState("");
+  const [companyLoading, setCompanyLoading] = useState(false);
+  const [companyError, setCompanyError] = useState(null);
+
   // Stock price state
   const [stockPrice, setStockPrice] = useState(null);
   const [priceError, setPriceError] = useState(null);
@@ -53,7 +58,7 @@ function App() {
   }, [theme]);
 
   // PUBLIC_INTERFACE
-  // Fetch Finnhub metrics and price for current ticker (In parallel)
+  // Fetch Finnhub metrics, company name, and price for current ticker (in parallel)
   useEffect(() => {
     async function fetchMetrics() {
       setLoading(true);
@@ -73,6 +78,29 @@ function App() {
         setConnectionStatus("error");
       } finally {
         setLoading(false);
+      }
+    }
+
+    async function fetchCompanyName() {
+      setCompanyLoading(true);
+      setCompanyError(null);
+      setCompanyName("");
+      const symbol = ticker.toUpperCase();
+      const url = `https://finnhub.io/api/v1/stock/profile2?symbol=${symbol}&token=d1omsf9r01quemda0sugd1omsf9r01quemda0sv0`;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Company profile API responded ${res.status}`);
+        const data = await res.json();
+        if (data && data.name) {
+          setCompanyName(data.name);
+        } else {
+          setCompanyName("");
+        }
+      } catch (err) {
+        setCompanyError(err.message);
+        setCompanyName("");
+      } finally {
+        setCompanyLoading(false);
       }
     }
 
@@ -102,6 +130,7 @@ function App() {
     if (ticker && ticker.length > 0) {
       fetchMetrics();
       fetchStockPrice();
+      fetchCompanyName();
     }
   }, [ticker]);
 
@@ -494,6 +523,24 @@ function App() {
             width: "100%",
           }}
         >
+          {/* Display company name above the metrics table */}
+          <div style={{ marginBottom: "0.4rem", minHeight: 32, textAlign: "center" }}>
+            {companyLoading ? (
+              <span style={{ fontWeight: 500, fontSize: "1.08em", color: "#1976d2" }}>
+                Fetching company info...
+              </span>
+            ) : companyError ? (
+              <span style={{ color: "#d32f2f", fontSize: "0.98em", fontWeight: 500 }}>
+                [Failed to fetch company name]
+              </span>
+            ) : companyName ? (
+              <span style={{ fontSize: "1.35em", fontWeight: 700, color: "#1976d2", letterSpacing: 0.2 }}>
+                {companyName}
+              </span>
+            ) : (
+              <span></span>
+            )}
+          </div>
           <h2 style={{ margin: "0 0 0.75rem 0" }}>
             {ticker ? <span>{ticker} Stock Metrics</span> : "Stock Metrics"}
           </h2>
