@@ -18,22 +18,18 @@ function App() {
   }, [theme]);
 
   // PUBLIC_INTERFACE
-  // Fetch Finnhub metrics for AAPL on mount
+  // Fetch Finnhub metrics for AAPL on mount (hardcoded URL and key, no process.env)
   useEffect(() => {
     /**
      * Fetch metrics for AAPL from Finnhub API.
-     * Uses REACT_APP_FINNHUB_API_KEY (if set), otherwise falls back to default demo key.
+     * Uses the specific provided API link and key as per requirements.
+     * Removes all dynamic environment variable usage.
      */
     async function fetchAaplMetrics() {
       setLoading(true);
       setApiError(null);
-      const fallbackKey = "d1omsf9r01quemda0sugd1omsf9r01quemda0sv0";
-      const key =
-        (typeof process !== "undefined" &&
-          process.env &&
-          process.env.REACT_APP_FINNHUB_API_KEY) ||
-        fallbackKey;
-      const url = `https://finnhub.io/api/v1/stock/metric?symbol=AAPL&metric=all&token=${key}`;
+      const url =
+        "https://finnhub.io/api/v1/stock/metric?symbol=AAPL&metric=all&token=d1omsf9r01quemda0sugd1omsf9r01quemda0sv0";
       try {
         const res = await fetch(url);
         if (!res.ok) throw new Error(`API responded ${res.status}`);
