@@ -140,32 +140,62 @@ function Dashboard({ ticker, setApiStatus, apiStatus, apiError }) {
           <ErrorMsg>{error}</ErrorMsg>
         ) : stock ? (
           <>
+            {/* Finnhub Metrics API Attribute Reference:
+                - Current Price: 'close'
+                - Today's Change: 'change' (absolute), 'percentChange' (percent)
+                - Previous Close: 'previousClose'
+                See https://finnhub.io/docs/api/stock-metrics for mapping.
+              */}
             <SummarySection>
               <SummaryField>
                 <div>Current</div>
                 <div className="val">
-                  {(stock.metric?.close ?? stock.c)?.toLocaleString("en-US", { style: "currency", currency: "USD" }) || "—"}
+                  {/* Finnhub metric.close (Current price, USD) */}
+                  {typeof stock?.metric?.close === "number"
+                    ? stock.metric.close.toLocaleString("en-US", { style: "currency", currency: "USD" })
+                    : "—"}
                 </div>
               </SummaryField>
               <SummaryField>
                 <div>Today's Change</div>
-                <div className="val" style={{ color: (stock.d ?? 0) >= 0 ? theme.accent : "#e53935" }}>
-                  {(stock.d ?? 0) >= 0 ? "+" : ""}
-                  {stock.d ?? "—"}
+                <div className="val" style={{ color: (stock?.metric?.change ?? 0) >= 0 ? theme.accent : "#e53935" }}>
+                  {/* Finnhub metric.change (absolute), metric.percentChange (percent, both from /metric) */}
+                  {typeof stock?.metric?.change === "number" && stock.metric.change >= 0 ? "+" : ""}
+                  {typeof stock?.metric?.change === "number"
+                    ? stock.metric.change
+                    : "—"}
                   {" ("}
-                  {(stock.dp ?? 0) >= 0 ? "+" : ""}
-                  {stock.dp ?? "—"}%
+                  {typeof stock?.metric?.percentChange === "number" && stock.metric.percentChange >= 0 ? "+" : ""}
+                  {typeof stock?.metric?.percentChange === "number"
+                    ? stock.metric.percentChange
+                    : "—"}
+                  {"%"}
                   {")"}
                 </div>
               </SummaryField>
               <SummaryField>
                 <div>Previous Close</div>
                 <div className="val">
-                  {(stock.metric?.["52WeekLow"] ?? stock.pc)?.toLocaleString("en-US", { style: "currency", currency: "USD" }) || "—"}
+                  {/* Finnhub metric.previousClose */}
+                  {typeof stock?.metric?.previousClose === "number"
+                    ? stock.metric.previousClose.toLocaleString("en-US", { style: "currency", currency: "USD" })
+                    : "—"}
                 </div>
               </SummaryField>
             </SummarySection>
             <h3>Metrics</h3>
+            {/* Metric Table Direct Mapping Reference:
+                P/E Ratio: peInclExtraTTM
+                EPS: epsInclExtraItemsTTM
+                ROE: roeTTM
+                Profit Margin: netProfitMarginTTM
+                Revenue Growth: revenueGrowthTTM
+                Volume: 10DayAverageTradingVolume
+                Dividend Yield: dividendYieldIndicatedAnnual
+                Beta: beta
+                Price: close
+                Trend (7D): 1WeekPriceReturnDaily
+              */}
             <MetricsTable>
               <thead>
                 <tr>
