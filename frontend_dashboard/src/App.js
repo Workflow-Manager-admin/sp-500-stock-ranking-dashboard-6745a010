@@ -30,11 +30,12 @@ function App() {
   // Finnhub connection status: 'connecting' | 'connected' | 'error'
   const [connectionStatus, setConnectionStatus] = useState("connecting");
 
-  // Table attributes—no Dividend Yield shown
+  // Table attributes—Dividend Yield now shown, but NOT used in scoring or disposition
   const TABLE_ATTRIBUTES = [
     { label: "Disposition (Recommendation)", key: "disposition", isDisposition: true },
     { label: "Current Stock Price", key: "currentStockPrice", isPrice: true },
     { label: "EPS (TTM)", key: "epsTTM" },
+    { label: "Dividend Yield (%)", key: "dividendYieldIndicatedAnnual" }, // ADDED
     { label: "P/E Ratio (Normalized Annual)", key: "peNormalizedAnnual" },
     { label: "Revenue Growth YoY (TTM)", key: "revenueGrowthTTMYoy" },
     { label: "ROE (TTM)", key: "roeTTM" },
@@ -312,6 +313,10 @@ function App() {
       key === "revenueGrowthTTMYoy"
     ) {
       return typeof v === "number" ? (v * 100).toFixed(2) + "%" : v + "%";
+    }
+    // Show Dividend Yield as percent (if present)
+    if (key === "dividendYieldIndicatedAnnual") {
+      return typeof v === "number" ? (v * 100).toFixed(2) + "%" : (v ? v + "%" : "N/A");
     }
     // Format ratio to 2 decimals
     if (
