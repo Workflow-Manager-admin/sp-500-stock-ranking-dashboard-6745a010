@@ -241,7 +241,7 @@ function App() {
   // Format value for table cell (now handles disposition column)
   function getMetricValue(metric, key) {
     if (key === "disposition") {
-      const { disposition } = getMetricScoreAndDisposition(metric, stockPrice);
+      const { disposition, totalScore } = getMetricScoreAndDisposition(metric, stockPrice);
       if (!metric) return "N/A";
       let color, bg;
       switch (disposition) {
@@ -271,7 +271,8 @@ function App() {
       }
       return (
         <span style={{
-          display: "inline-block",
+          display: "inline-flex",
+          alignItems: "center",
           fontWeight: 700,
           fontSize: "0.98em",
           color,
@@ -279,7 +280,31 @@ function App() {
           borderRadius: 7,
           padding: "5px 16px",
           margin: "0 3px"
-        }}>{disposition}</span>
+        }}>
+          {disposition}
+          <span
+            style={{
+              display: "inline-block",
+              background: "#fff",
+              color: bg,
+              borderRadius: 5,
+              fontWeight: 600,
+              fontSize: "0.92em",
+              marginLeft: 10,
+              padding: "2px 9px",
+              lineHeight: 1.1,
+              border: `1.3px solid ${bg}`,
+              boxShadow: "0 1px 2px rgba(20,20,30,0.07)",
+              minWidth: 52,
+              textAlign: "center",
+            }}
+            aria-label="Score"
+            title={`Score: ${(totalScore*100).toFixed(1)} / 100`}
+          >
+            {(totalScore*100).toFixed(1)}
+            <span style={{ fontWeight: 400, fontSize: "0.87em", color: "#555", marginLeft: 3 }}>/100</span>
+          </span>
+        </span>
       );
     }
     // Special case: render Current Stock Price column
@@ -414,13 +439,19 @@ function App() {
           <input
             style={{
               fontSize: "1rem",
-              padding: "6px 12px",
+              padding: "7px 19px",
               borderRadius: 8,
-              border: "1px solid #ddd",
+              border: "2px solid #1976d2",
               fontFamily: "monospace",
-              width: 102,
-              minWidth: 60,
+              width: 190,
+              minWidth: 100,
+              background: "#eef4fb",
               outline: "none",
+              fontWeight: 700,
+              color: "#1565c0",
+              letterSpacing: "0.15em",
+              boxShadow: "0 1px 3px rgba(20,40,110,0.09)",
+              transition: "border 0.15s, box-shadow 0.15s",
             }}
             id="ticker-input"
             name="ticker"
