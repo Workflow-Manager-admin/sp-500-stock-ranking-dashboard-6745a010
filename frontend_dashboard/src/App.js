@@ -3,11 +3,14 @@ import "./App.css";
 
 /**
  * PUBLIC_INTERFACE
- * Main Dashboard App for S&P 500 stock ranking.
- * Fetches and displays real-time AAPL stock metrics from Finnhub.
+ * Main Dashboard App for S&P 500 stock ranking, refactored for dynamic ticker search.
+ * Lets users input a valid ticker symbol, fetches and displays Finnhub stock metrics as a table
+ * with attribute names as columns and the corresponding values as a single row.
  */
 function App() {
   const [theme, setTheme] = useState("light");
+  const [ticker, setTicker] = useState("AAPL"); // default starting ticker
+  const [inputTicker, setInputTicker] = useState("AAPL");
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
@@ -15,25 +18,41 @@ function App() {
   // Finnhub connection status: 'connecting' | 'connected' | 'error'
   const [connectionStatus, setConnectionStatus] = useState("connecting");
 
+  // The parameter metadata to drive the new table display (order matters!)
+  const TABLE_ATTRIBUTES = [
+    { label: "EPS (TTM)", key: "epsTTM" },
+    { label: "P/E Ratio (Normalized Annual)", key: "peNormalizedAnnual" },
+    { label: "Revenue Growth YoY (TTM)", key: "revenueGrowthTTMYoy" },
+    { label: "ROE (TTM)", key: "roeTTM" },
+    { label: "Free Cash Flow (TTM)", key: "freeCashFlowTTM" },
+    { label: "Debt/Equity", key: "debtEquity" }, // calculated
+    { label: "Interest Coverage", key: "interestCoverage" },
+    { label: "Gross Margin (TTM)", key: "grossMarginTTM" },
+    { label: "Net Profit Margin (TTM)", key: "netProfitMarginTTM" },
+    { label: "P/B Ratio (Annual)", key: "pbAnnual" },
+    { label: "Dividend Yield (Indicated Annual)", key: "dividendYieldIndicatedAnnual" },
+  ];
+
   // Effect: apply theme to <html>
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
   // PUBLIC_INTERFACE
-  // Fetch Finnhub metrics for AAPL on mount (hardcoded URL and key, no process.env)
+  // Fetch Finnhub metrics for current ticker
   useEffect(() => {
     /**
-     * Fetch metrics for AAPL from Finnhub API.
+     * Fetch metrics for a given ticker from Finnhub API.
      * Uses the specific provided API link and key as per requirements.
-     * Removes all dynamic environment variable usage.
+     * No dynamic environment variables used.
      */
-    async function fetchAaplMetrics() {
+    async function fetchMetrics() {
       setLoading(true);
       setApiError(null);
       setConnectionStatus("connecting");
-      const url =
-        "https://finnhub.io/api/v1/stock/metric?symbol=AAPL&metric=all&token=d1omsf9r01quemda0sugd1omsf9r01quemda0sv0";
+      // Always uppercase, Finnhub requires
+      const symbol = ticker.toUpperCase();
+      const url = `https://finnhub.io/api/v1/stock/metric?symbol=${symbol}&metric=all&token=d1omsf9r01quemda0sugd1omsf9r01quemda0sv0`;
       try {
         const res = await fetch(url);
         if (!res.ok) throw new Error(`API responded ${res.status}`);
@@ -42,7 +61,7 @@ function App() {
         setConnectionStatus("connected");
         // For debug confirmation
         // eslint-disable-next-line no-console
-        console.log("AAPL Metrics fetched from Finnhub:", data);
+        console.log(`${symbol} Metrics fetched from Finnhub:`, data);
       } catch (err) {
         setApiError(err.message);
         setMetrics(null);
@@ -51,12 +70,59 @@ function App() {
         setLoading(false);
       }
     }
-    fetchAaplMetrics();
-  }, []);
+    if (ticker && ticker.length > 0) {
+      fetchMetrics();
+    }
+  }, [ticker]);
 
   // PUBLIC_INTERFACE
   // Toggle light/dark theme
   const toggleTheme = () => setTheme((t) => (t === "light" ? "dark" : "light"));
+
+  // PUBLIC_INTERFACE
+  // Handle form submit for ticker search
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const cleanTicker = inputTicker.trim().toUpperCase();
+    if (cleanTicker.length > 0 && cleanTicker !== ticker) {
+      setTicker(cleanTicker);
+    }
+  };
+
+  // Helper: Format value for table cell
+  function getMetricValue(metric, key) {
+    if (!metric) return "N/A";
+    // Special case for 'debtEquity'
+    if (key === "debtEquity") {
+      if (
+        metric.totalDebt !== undefined &&
+        metric.totalDebt !== null &&
+        metric.totalEquity !== undefined &&
+        metric.totalEquity !== null &&
+        Number(metric.totalEquity) !== 0
+      ) {
+        return (Number(metric.totalDebt) / Number(metric.totalEquity)).toFixed(4);
+      }
+      return "N/A";
+    }
+    const v = metric[key];
+    if (v === undefined || v === null || v === "") return "N/A";
+    // Show as percent if the attribute is a margin or yield
+    if (
+      key === "grossMarginTTM" ||
+      key === "netProfitMarginTTM" ||
+      key === "dividendYieldIndicatedAnnual" ||
+      key === "revenueGrowthTTMYoy"
+    ) {
+      return typeof v === "number" ? (v * 100).toFixed(2) + "%" : v + "%";
+    }
+    // Format ratio to 2 decimals
+    if (key === "peNormalizedAnnual" || key === "pbAnnual" || key === "roeTTM" || key === "interestCoverage") {
+      return Number(v).toFixed(2);
+    }
+    // Everything else: keep as is (to 2 decimals if number)
+    return typeof v === "number" ? v.toFixed(2) : v;
+  }
 
   // Helper to render Finnhub status badge
   function renderStatusBadge(status) {
@@ -130,137 +196,149 @@ function App() {
         {renderStatusBadge(connectionStatus)}
 
         <h1>S&amp;P 500 Stock Dashboard</h1>
-        <p>
-          <strong>Demo: Real-time Finnhub API data for <code>AAPL</code></strong>
-        </p>
+        <form
+          onSubmit={handleSubmit}
+          style={{
+            display: "flex",
+            gap: "10px",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: "18px 0 8px 0",
+            fontSize: "1rem",
+          }}
+          autoComplete="off"
+        >
+          <label htmlFor="ticker-input" style={{ fontWeight: 600 }}>
+            Ticker:
+          </label>
+          <input
+            style={{
+              fontSize: "1rem",
+              padding: "6px 12px",
+              borderRadius: 8,
+              border: "1px solid #ddd",
+              fontFamily: "monospace",
+              width: 102,
+              minWidth: 60,
+              outline: "none",
+            }}
+            id="ticker-input"
+            name="ticker"
+            value={inputTicker}
+            onChange={(e) => setInputTicker(e.target.value.replace(/[^a-zA-Z]/g, "").toUpperCase())}
+            maxLength={8}
+            placeholder="AAPL"
+            autoFocus
+            required
+            aria-label="Ticker symbol"
+            data-testid="ticker-input"
+          />
+          <button
+            type="submit"
+            style={{
+              background: "var(--button-bg)",
+              color: "var(--button-text)",
+              padding: "7px 22px",
+              border: "none",
+              borderRadius: 8,
+              fontWeight: 600,
+              fontSize: "1rem",
+              cursor: "pointer",
+              transition: "all 0.2s",
+            }}
+          >
+            Search
+          </button>
+        </form>
+
         <section
           style={{
             background: "var(--bg-secondary)",
             padding: 20,
             borderRadius: 12,
             margin: "2rem auto",
-            maxWidth: 480,
+            maxWidth: 890,
             boxShadow: "0 2px 8px rgba(25, 118, 210, 0.07)",
             minHeight: 180,
+            width: "100%",
           }}
         >
-          <h2 style={{margin: "0 0 0.75rem 0"}}>AAPL Stock Metrics</h2>
+          <h2 style={{ margin: "0 0 0.75rem 0" }}>
+            {ticker ? <span>{ticker} Stock Metrics</span> : "Stock Metrics"}
+          </h2>
           {loading && <div>Loading metrics...</div>}
           {apiError && (
             <div style={{ color: "red", marginBottom: 16 }}>Error: {apiError}</div>
           )}
           {metrics && metrics.metric ? (
-            <div style={{ textAlign: "center", fontSize: "1.13rem", width: "100%", overflowX: "auto" }}>
-              {/* Render only the list/array of raw values in order, no labels/names, 'N/A' for missing */}
-              <div
+            <div
+              style={{
+                textAlign: "center",
+                fontSize: "1.13rem",
+                width: "100%",
+                overflowX: "auto",
+                marginTop: 12,
+              }}
+            >
+              {/* New table: attr names are columns, values for current ticker in one row */}
+              <table
                 style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "16px",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  minHeight: 120,
+                  width: "100%",
+                  background: "var(--bg-primary)",
+                  borderCollapse: "collapse",
+                  borderRadius: 10,
+                  boxShadow: "0 2px 6px rgba(50,50,50,0.045)",
+                  margin: "0 auto",
+                  minWidth: 740,
+                  maxWidth: 1280,
                 }}
+                data-testid="metrics-table"
               >
-                {
-                  [
-                    // 1. metric.epsTTM
-                    metrics.metric.epsTTM !== undefined &&
-                    metrics.metric.epsTTM !== null &&
-                    metrics.metric.epsTTM !== ""
-                      ? metrics.metric.epsTTM
-                      : "N/A",
-
-                    // 2. metric.peNormalizedAnnual
-                    metrics.metric.peNormalizedAnnual !== undefined &&
-                    metrics.metric.peNormalizedAnnual !== null &&
-                    metrics.metric.peNormalizedAnnual !== ""
-                      ? metrics.metric.peNormalizedAnnual
-                      : "N/A",
-
-                    // 3. metric.revenueGrowthTTMYoy
-                    metrics.metric.revenueGrowthTTMYoy !== undefined &&
-                    metrics.metric.revenueGrowthTTMYoy !== null
-                      ? metrics.metric.revenueGrowthTTMYoy
-                      : "N/A",
-
-                    // 4. metric.roeTTM
-                    metrics.metric.roeTTM !== undefined &&
-                    metrics.metric.roeTTM !== null
-                      ? metrics.metric.roeTTM
-                      : "N/A",
-
-                    // 5. metric.freeCashFlowTTM
-                    metrics.metric.freeCashFlowTTM !== undefined &&
-                    metrics.metric.freeCashFlowTTM !== null &&
-                    metrics.metric.freeCashFlowTTM !== ""
-                      ? metrics.metric.freeCashFlowTTM
-                      : "N/A",
-
-                    // 6. calculated (metric.totalDebt/metric.totalEquity)
-                    metrics.metric.totalDebt !== undefined &&
-                    metrics.metric.totalDebt !== null &&
-                    metrics.metric.totalEquity !== undefined &&
-                    metrics.metric.totalEquity !== null &&
-                    Number(metrics.metric.totalEquity) !== 0
-                      ? Number(metrics.metric.totalDebt) / Number(metrics.metric.totalEquity)
-                      : "N/A",
-
-                    // 7. metric.interestCoverage
-                    metrics.metric.interestCoverage !== undefined &&
-                    metrics.metric.interestCoverage !== null &&
-                    metrics.metric.interestCoverage !== ""
-                      ? metrics.metric.interestCoverage
-                      : "N/A",
-
-                    // 8. metric.grossMarginTTM
-                    metrics.metric.grossMarginTTM !== undefined &&
-                    metrics.metric.grossMarginTTM !== null
-                      ? metrics.metric.grossMarginTTM
-                      : "N/A",
-
-                    // 9. metric.netProfitMarginTTM
-                    metrics.metric.netProfitMarginTTM !== undefined &&
-                    metrics.metric.netProfitMarginTTM !== null
-                      ? metrics.metric.netProfitMarginTTM
-                      : "N/A",
-
-                    // 10. metric.pbAnnual
-                    metrics.metric.pbAnnual !== undefined &&
-                    metrics.metric.pbAnnual !== null &&
-                    metrics.metric.pbAnnual !== ""
-                      ? metrics.metric.pbAnnual
-                      : "N/A",
-
-                    // 11. metric.dividendYieldIndicatedAnnual
-                    metrics.metric.dividendYieldIndicatedAnnual !== undefined &&
-                    metrics.metric.dividendYieldIndicatedAnnual !== null
-                      ? metrics.metric.dividendYieldIndicatedAnnual
-                      : "N/A",
-                  ].map((value, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        padding: "11px 0",
-                        width: "100%",
-                        fontFamily: "monospace",
-                        background: "var(--bg-primary)",
-                        color: "var(--text-primary)",
-                        borderBottom: idx !== 10 ? "1px solid var(--border-color)" : "none",
-                        fontWeight: 600,
-                        fontSize: "1.22em",
-                      }}
-                      data-testid={`metric-value-${idx}`}
-                    >
-                      {value}
-                    </div>
-                  ))
-                }
-              </div>
+                <thead>
+                  <tr>
+                    {TABLE_ATTRIBUTES.map((attr, ix) => (
+                      <th
+                        key={attr.key}
+                        style={{
+                          padding: "12px 12px",
+                          fontWeight: 700,
+                          borderBottom: "2px solid var(--border-color)",
+                          background: "var(--bg-secondary)",
+                          color: "var(--text-secondary)",
+                          minWidth: 80,
+                          fontSize: "1.08em",
+                        }}
+                      >
+                        {attr.label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    {TABLE_ATTRIBUTES.map((attr, ix) => (
+                      <td
+                        key={attr.key}
+                        style={{
+                          padding: "10px 4px",
+                          fontFamily: "monospace",
+                          fontWeight: 600,
+                          color: "var(--text-primary)",
+                          background: "var(--bg-primary)",
+                          borderBottom: "1px solid var(--border-color)",
+                          fontSize: "1.09em",
+                        }}
+                        data-testid={`metriccell-${attr.key}`}
+                      >
+                        {getMetricValue(metrics.metric, attr.key)}
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
             </div>
           ) : (
-            !loading &&
-            !apiError && <div>No metric data found.</div>
+            !loading && !apiError && <div>No metric data found.</div>
           )}
         </section>
         <footer style={{ marginTop: 24, color: "var(--text-secondary)" }}>
