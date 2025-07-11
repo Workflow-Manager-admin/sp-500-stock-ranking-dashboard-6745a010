@@ -119,13 +119,7 @@ function Dashboard({ ticker, setApiStatus, apiStatus, apiError }) {
           <InfoBlock>
             <InfoLabel>API Endpoint:</InfoLabel>
             <InfoValue>
-              https://finnhub.io/api/v1/stock/metric?symbol=AAPL&amp;metric=all&amp;token=*****
-            </InfoValue>
-          </InfoBlock>
-          <InfoBlock>
-            <InfoLabel>API Key:</InfoLabel>
-            <InfoValue>
-              d1omsf9r01quemda0sugd1omsf9r01quemda0sv0
+              https://finnhub.io/api/v1/stock/metric?symbol=AAPL&amp;metric=
             </InfoValue>
           </InfoBlock>
         </ApiInfoContainer>

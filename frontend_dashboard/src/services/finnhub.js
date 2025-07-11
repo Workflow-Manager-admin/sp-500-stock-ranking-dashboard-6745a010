@@ -2,21 +2,21 @@ import axios from "axios";
 
 /**
  * PUBLIC_INTERFACE
- * Fetches comprehensive stock metrics from the ONLY allowed Finnhub endpoint for AAPL.
- * No alternate endpoint, key, environment variable, or dynamic configuration is permitted.
- * All requests use:
- *   https://finnhub.io/api/v1/stock/metric?symbol=AAPL&metric=all&token=d1omsf9r01quemda0sugd1omsf9r01quemda0sv0
- * 
+ * Fetches AAPL stock metrics from the required Finnhub endpoint ONLY:
+ * https://finnhub.io/api/v1/stock/metric?symbol=AAPL&metric=
+ * - No key or metric param modification is allowed.
+ * - This is used for all real-time AAPL metric data in the dashboard.
+ *
  * @returns {Promise<{metric: object, chart: array, c?: number, d?: number, dp?: number, pc?: number}>}
- * @throws {Error} When fetch fails, includes descriptive, actionable info and iso timestamp.
+ * @throws {Error} On fetch failure, gives actionable message with timestamp.
  */
 export async function getStockData() {
   const FINNHUB_ENDPOINT =
-    "https://finnhub.io/api/v1/stock/metric?symbol=AAPL&metric=all&token=d1omsf9r01quemda0sugd1omsf9r01quemda0sv0";
+    "https://finnhub.io/api/v1/stock/metric?symbol=AAPL&metric=";
 
-  // Logging for debugging - always log endpoint as redacted, no env logic
+  // Logging for debugging: log the required endpoint, no token present
   // eslint-disable-next-line
-  console.log(`[Finnhub] Using ONLY endpoint: ${FINNHUB_ENDPOINT.replace(/token=([^&]+)/, "token=[REDACTED]")}`);
+  console.log(`[Finnhub] Using required endpoint: ${FINNHUB_ENDPOINT}`);
 
   let metricRes;
   try {
@@ -30,7 +30,7 @@ export async function getStockData() {
     let details = "";
     if (err.response) {
       msg += ` HTTP ${err.response.status}: ${JSON.stringify(err.response.data)}`;
-      details += "Check if Finnhub API token is valid and not exceeded rate limits.";
+      details += "Check if Finnhub API is available and rate-limits have not been exceeded.";
     } else if (err.request) {
       msg += " No response (network issue?)";
       details += "Verify your internet connection and ensure finnhub.io is reachable from your network.";
@@ -39,16 +39,15 @@ export async function getStockData() {
     }
 
     const actionHint =
-      "See console for full stack trace. If persistent, check network/firewall settings and API key status at finnhub.io (free keys may be rate limited).";
+      "See console for full stack trace. If persistent, check your network/firewall settings or https://finnhub.io/status.";
 
     // eslint-disable-next-line
-    console.error(`[Finnhub ERROR @ ${errTime}]`, msg, "\nDetails:", err, "\nAction:", details);
+    console.error(`[Finnhub ERROR @ ${errTime}]`, msg, "\\nDetails:", err, "\\nAction:", details);
 
-    // Error message shown in UI should be concise but actionable.
     throw new Error(`${msg}${details ? " [" + details + "]" : ""} ${actionHint}`);
   }
 
-  // Generate mock price chart for visual purposes, as before
+  // Generate mock price chart for visual purposes as before
   let chart = [];
   let ce = Number(metricRes?.data?.metric?.["52WeekHigh"]) || 180;
   try {
