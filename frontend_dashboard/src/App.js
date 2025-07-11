@@ -6,7 +6,12 @@ import "./App.css";
  * Main Dashboard App for S&P 500 stock ranking, refactored for dynamic ticker search.
  * Lets users input a valid ticker symbol, fetches and displays Finnhub stock metrics as a table
  * with attribute names as columns and the corresponding values as a single row.
+ *
+ * Now implements scoring and disposition logic:
+ * - Computes total score by summing metric scores according to thresholds.
+ * - Adds 'Disposition' as first table column ("Buy", "Hold", or "Sell").
  */
+
 function App() {
   const [theme, setTheme] = useState("light");
   const [ticker, setTicker] = useState("AAPL"); // default starting ticker
@@ -23,9 +28,10 @@ function App() {
   // Finnhub connection status: 'connecting' | 'connected' | 'error'
   const [connectionStatus, setConnectionStatus] = useState("connecting");
 
-  // Table attributes, with added "Current Stock Price" as the first column
-  // (order matters!)
+  // Table attributes, FIRST COLUMN will be 'Disposition'
+  // All other financial/metric columns after that
   const TABLE_ATTRIBUTES = [
+    { label: "Disposition", key: "disposition", isDisposition: true },
     { label: "Current Stock Price", key: "currentStockPrice", isPrice: true },
     { label: "EPS (TTM)", key: "epsTTM" },
     { label: "P/E Ratio (Normalized Annual)", key: "peNormalizedAnnual" },
@@ -37,7 +43,7 @@ function App() {
     { label: "Gross Margin (TTM)", key: "grossMarginTTM" },
     { label: "Net Profit Margin (TTM)", key: "netProfitMarginTTM" },
     { label: "P/B Ratio (Annual)", key: "pbAnnual" },
-    { label: "Dividend Yield (Indicated Annual)", key: "dividendYieldIndicatedAnnual" },
+    { label: "Dividend Yield (Indicated Annual)", key: "dividendYieldIndicatedAnnual" }
   ];
 
   // Effect: apply theme to <html>
@@ -127,8 +133,139 @@ function App() {
     }
   };
 
-  // Helper: Format value for table cell
+  // Returns {totalScore, disposition, individualScores}
+  // PUBLIC_INTERFACE
+  function getMetricScoreAndDisposition(metric, stockPriceValue) {
+    // If any argument required is missing, disposition is "N/A"
+    if (!metric) return { totalScore: 0, disposition: "N/A", individualScores: {} };
+
+    // Score each metric according to threshold table
+    // Each metric is +1 point for "good", 0 for neutral, -1 for "bad"
+    // Customize thresholds as determined
+    
+    // NOTE: Thresholds are illustrative -- adapt as needed for actual project.
+    // All scoring must be consistent.
+    const breakdown = {};
+
+    // EPS (TTM), higher = better
+    const eps = metric.epsTTM;
+    breakdown.epsTTM = eps > 5 ? 1 : eps > 1 ? 0 : -1;
+
+    // P/E Ratio (Normalized Annual), lower = better, but <8 often means value, >30 can be overpriced
+    const pe = metric.peNormalizedAnnual;
+    breakdown.peNormalizedAnnual = pe === undefined || pe === null
+      ? 0
+      : pe < 15 ? 1 : pe <= 30 ? 0 : -1;
+
+    // Revenue Growth YoY (TTM), higher = better, positive good
+    const rev = metric.revenueGrowthTTMYoy;
+    breakdown.revenueGrowthTTMYoy = rev === undefined || rev === null
+      ? 0
+      : rev > 0.1 ? 1 : rev > 0 ? 0 : -1;
+
+    // ROE (TTM), Return on equity, higher = better, >15% good
+    const roe = metric.roeTTM;
+    breakdown.roeTTM = roe === undefined || roe === null
+      ? 0
+      : roe > 0.15 ? 1 : roe > 0.07 ? 0 : -1;
+
+    // Free Cash Flow (TTM), positive is good
+    const fcf = metric.freeCashFlowTTM;
+    breakdown.freeCashFlowTTM = fcf === undefined || fcf === null
+      ? 0
+      : fcf > 0 ? 1 : fcf === 0 ? 0 : -1;
+
+    // Debt/Equity, lower = better (<1 good)
+    let de = "N/A";
+    if (
+      metric.totalDebt !== undefined &&
+      metric.totalDebt !== null &&
+      metric.totalEquity !== undefined &&
+      metric.totalEquity !== null &&
+      Number(metric.totalEquity) !== 0
+    ) {
+      de = Number(metric.totalDebt) / Number(metric.totalEquity);
+    }
+    breakdown.debtEquity = de === "N/A"
+      ? 0
+      : de < 1 ? 1 : de <= 2 ? 0 : -1;
+
+    // Interest Coverage, higher = better, >5 good, <1 is dangerous
+    const ic = metric.interestCoverage;
+    breakdown.interestCoverage = ic === undefined || ic === null
+      ? 0
+      : ic > 5 ? 1 : ic > 1 ? 0 : -1;
+
+    // Gross Margin (TTM), >50% is great, 30%-50% ok, <30% lower quality
+    const gross = metric.grossMarginTTM;
+    breakdown.grossMarginTTM = gross === undefined || gross === null
+      ? 0
+      : gross > 0.5 ? 1 : gross > 0.3 ? 0 : -1;
+
+    // Net Profit Margin (TTM), >15% is good, 5%-15% ok, <5% bad
+    const net = metric.netProfitMarginTTM;
+    breakdown.netProfitMarginTTM = net === undefined || net === null
+      ? 0
+      : net > 0.15 ? 1 : net > 0.05 ? 0 : -1;
+
+    // P/B Ratio (Annual): lower = better, <3 is good
+    const pb = metric.pbAnnual;
+    breakdown.pbAnnual = pb === undefined || pb === null
+      ? 0
+      : pb < 3 ? 1 : pb < 7 ? 0 : -1;
+
+    // Dividend Yield (Indicated Annual), >2% good, 0-2% neutral, 0 = neutral
+    const dy = metric.dividendYieldIndicatedAnnual;
+    breakdown.dividendYieldIndicatedAnnual = dy === undefined || dy === null
+      ? 0
+      : dy > 0.02 ? 1 : dy > 0 ? 0 : 0; // 0 yield = 0, >2% = 1, 0-2% = 0
+
+    // Total score: sum of all 11 metrics
+    const allScores = Object.values(breakdown);
+    const totalScore = allScores.reduce((a, b) => a + b, 0);
+
+    // Disposition by score: Buy >= 6, Hold >= 2, else Sell
+    let disposition = "Hold";
+    if (totalScore >= 6) disposition = "Buy";
+    else if (totalScore <= 1) disposition = "Sell";
+
+    return { totalScore, disposition, individualScores: breakdown };
+  }
+
+  // Helper: Format value for table cell (now handles disposition column)
   function getMetricValue(metric, key) {
+    if (key === "disposition") {
+      // Calculate the disposition only if metric is present
+      const { disposition } = getMetricScoreAndDisposition(metric, stockPrice);
+      // Display as a badge
+      if (!metric) return "N/A";
+      let color, bg;
+      if (disposition === "Buy") {
+        color = "#fff";
+        bg = "#43a047";
+      } else if (disposition === "Hold") {
+        color = "#fff";
+        bg = "#f9a825";
+      } else if (disposition === "Sell") {
+        color = "#fff";
+        bg = "#d32f2f";
+      } else {
+        color = "#888";
+        bg = "#e0e0e0";
+      }
+      return (
+        <span style={{
+          display: "inline-block",
+          fontWeight: 700,
+          fontSize: "0.98em",
+          color,
+          background: bg,
+          borderRadius: 7,
+          padding: "5px 16px",
+          margin: "0 3px"
+        }}>{disposition}</span>
+      );
+    }
     // Special case: render Current Stock Price column
     if (key === "currentStockPrice") {
       if (priceLoading) return "Loading...";
@@ -164,7 +301,12 @@ function App() {
       return typeof v === "number" ? (v * 100).toFixed(2) + "%" : v + "%";
     }
     // Format ratio to 2 decimals
-    if (key === "peNormalizedAnnual" || key === "pbAnnual" || key === "roeTTM" || key === "interestCoverage") {
+    if (
+      key === "peNormalizedAnnual" ||
+      key === "pbAnnual" ||
+      key === "roeTTM" ||
+      key === "interestCoverage"
+    ) {
       return Number(v).toFixed(2);
     }
     // Everything else: keep as is (to 2 decimals if number)
@@ -368,9 +510,9 @@ function App() {
                         key={attr.key}
                         style={{
                           padding: "10px 4px",
-                          fontFamily: "monospace",
-                          fontWeight: 600,
-                          color: "var(--text-primary)",
+                          fontFamily: attr.key === "disposition" ? "inherit" : "monospace",
+                          fontWeight: attr.key === "disposition" ? 700 : 600,
+                          color: attr.key === "disposition" ? "inherit" : "var(--text-primary)",
                           background: "var(--bg-primary)",
                           borderBottom: "1px solid var(--border-color)",
                           fontSize: "1.09em",
