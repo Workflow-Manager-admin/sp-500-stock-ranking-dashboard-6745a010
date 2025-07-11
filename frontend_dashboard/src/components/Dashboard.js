@@ -6,28 +6,17 @@ import { getPerformanceMetrics, evaluateDisposition } from "../data/metrics";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 // PUBLIC_INTERFACE
-function Dashboard({ ticker, setApiStatus, finnhubAvailable }) {
+function Dashboard({ ticker, setApiStatus }) {
   const [loading, setLoading] = useState(true);
   const [stock, setStock] = useState(null);
   const [error, setError] = useState();
 
   useEffect(() => {
-    if (!finnhubAvailable) {
-      setLoading(false);
-      setError("Missing Finnhub API key.");
-      setApiStatus("error");
-      setStock(null);
-      // Debug log for development
-      if (process.env.NODE_ENV !== "production") {
-        // eslint-disable-next-line
-        console.warn("[Dashboard] Finnhub API key is missing.");
-      }
-      return;
-    }
+    // Ignore API key/env checks, always fetch AAPL
     setLoading(true);
     setError("");
     setApiStatus("loading");
-    getStockData(ticker)
+    getStockData() // no ticker!
       .then((data) => {
         setStock(data);
         setLoading(false);
@@ -45,13 +34,12 @@ function Dashboard({ ticker, setApiStatus, finnhubAvailable }) {
         setApiStatus("error");
         setStock(null);
         setLoading(false);
-        // Development debugging
         if (process.env.NODE_ENV !== "production") {
           // eslint-disable-next-line
           console.error("[Dashboard] Error during Finnhub fetch:", e);
         }
       });
-  }, [ticker, setApiStatus, finnhubAvailable]);
+  }, [ticker, setApiStatus]);
 
   const company = getCompanyByTicker(ticker);
   const metrics = getPerformanceMetrics(stock, ticker);

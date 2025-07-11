@@ -4,7 +4,6 @@ import NavBar from "./components/NavBar";
 import SideBar from "./components/SideBar";
 import Dashboard from "./components/Dashboard";
 import { getCompanyList } from "./data/companies";
-import { getFinnhubKey } from "./services/env";
 
 // Define dashboard theme based on requirements
 const theme = {
@@ -37,7 +36,6 @@ function App() {
   const [search, setSearch] = useState("");
   const [companyList, setCompanyList] = useState(getCompanyList());
   const [apiStatus, setApiStatus] = useState("idle");
-  const [finnhubAvailable, setFinnhubAvailable] = useState(!!getFinnhubKey());
 
   // Filter function for search
   const handleSearch = (value) => {
@@ -56,10 +54,7 @@ function App() {
     setSelectedTicker(ticker);
   };
 
-  // API key warning for demo
-  useEffect(() => {
-    setFinnhubAvailable(!!getFinnhubKey());
-  }, []);
+  // Remove API key warnings: not needed, API/token now hardcoded in finnhub.js
 
   return (
     <ThemeProvider theme={theme}>
@@ -68,7 +63,7 @@ function App() {
         apiStatus={apiStatus}
         search={search}
         setSearch={handleSearch}
-        finnhubAvailable={finnhubAvailable}
+        finnhubAvailable={true} // Always available in demo
       />
       <Container>
         <SideBar
@@ -80,7 +75,6 @@ function App() {
           <Dashboard
             ticker={selectedTicker}
             setApiStatus={setApiStatus}
-            finnhubAvailable={finnhubAvailable}
           />
         </Main>
       </Container>
