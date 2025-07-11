@@ -17,6 +17,11 @@ function Dashboard({ ticker, setApiStatus, finnhubAvailable }) {
       setError("Missing Finnhub API key.");
       setApiStatus("error");
       setStock(null);
+      // Debug log for development
+      if (process.env.NODE_ENV !== "production") {
+        // eslint-disable-next-line
+        console.warn("[Dashboard] Finnhub API key is missing.");
+      }
       return;
     }
     setLoading(true);
@@ -29,10 +34,22 @@ function Dashboard({ ticker, setApiStatus, finnhubAvailable }) {
         setApiStatus("ok");
       })
       .catch((e) => {
-        setError("Could not fetch data.");
+        setError(
+          <>
+            Could not fetch data.<br />
+            {process.env.NODE_ENV !== "production" && (
+              <span style={{fontSize:"90%"}}>{typeof e === "object" && e?.message ? e.message : e+""}</span>
+            )}
+          </>
+        );
         setApiStatus("error");
         setStock(null);
         setLoading(false);
+        // Development debugging
+        if (process.env.NODE_ENV !== "production") {
+          // eslint-disable-next-line
+          console.error("[Dashboard] Error during Finnhub fetch:", e);
+        }
       });
   }, [ticker, setApiStatus, finnhubAvailable]);
 
