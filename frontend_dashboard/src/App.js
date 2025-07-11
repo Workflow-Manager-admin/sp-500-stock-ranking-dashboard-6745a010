@@ -15,11 +15,18 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
 
+  // Stock price state
+  const [stockPrice, setStockPrice] = useState(null);
+  const [priceError, setPriceError] = useState(null);
+  const [priceLoading, setPriceLoading] = useState(false);
+
   // Finnhub connection status: 'connecting' | 'connected' | 'error'
   const [connectionStatus, setConnectionStatus] = useState("connecting");
 
-  // The parameter metadata to drive the new table display (order matters!)
+  // Table attributes, with added "Current Stock Price" as the first column
+  // (order matters!)
   const TABLE_ATTRIBUTES = [
+    { label: "Current Stock Price", key: "currentStockPrice", isPrice: true },
     { label: "EPS (TTM)", key: "epsTTM" },
     { label: "P/E Ratio (Normalized Annual)", key: "peNormalizedAnnual" },
     { label: "Revenue Growth YoY (TTM)", key: "revenueGrowthTTMYoy" },
@@ -39,7 +46,7 @@ function App() {
   }, [theme]);
 
   // PUBLIC_INTERFACE
-  // Fetch Finnhub metrics for current ticker
+  // Fetch Finnhub metrics and price for current ticker (In parallel)
   useEffect(() => {
     /**
      * Fetch metrics for a given ticker from Finnhub API.
@@ -70,8 +77,39 @@ function App() {
         setLoading(false);
       }
     }
+
+    async function fetchStockPrice() {
+      setPriceLoading(true);
+      setPriceError(null);
+      setStockPrice(null);
+      // Only fetch if the ticker is present
+      const symbol = ticker.toUpperCase();
+      // Use your Finnhub API key here for /quote as well
+      const url = `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=d1omsf9r01quemda0sugd1omsf9r01quemda0sv0`;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Price API responded ${res.status}`);
+        const data = await res.json();
+        // Finnhub /quote returns { c: current price, ... }
+        if (typeof data.c === "number" && !isNaN(data.c)) {
+          setStockPrice(data.c);
+        } else {
+          setStockPrice(null);
+        }
+        // Debug
+        // eslint-disable-next-line no-console
+        console.log(`${symbol} Stock price from Finnhub:`, data);
+      } catch (err) {
+        setPriceError(err.message);
+        setStockPrice(null);
+      } finally {
+        setPriceLoading(false);
+      }
+    }
+
     if (ticker && ticker.length > 0) {
       fetchMetrics();
+      fetchStockPrice();
     }
   }, [ticker]);
 
@@ -91,6 +129,15 @@ function App() {
 
   // Helper: Format value for table cell
   function getMetricValue(metric, key) {
+    // Special case: render Current Stock Price column
+    if (key === "currentStockPrice") {
+      if (priceLoading) return "Loading...";
+      if (priceError) return "N/A";
+      if (stockPrice === null || stockPrice === undefined || isNaN(stockPrice))
+        return "N/A";
+      // Show with $ and 2 decimals
+      return "$" + Number(stockPrice).toFixed(2);
+    }
     if (!metric) return "N/A";
     // Special case for 'debtEquity'
     if (key === "debtEquity") {
