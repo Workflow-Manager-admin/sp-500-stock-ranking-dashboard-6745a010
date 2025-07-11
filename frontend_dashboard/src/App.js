@@ -22,6 +22,10 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
 
+  // For Finnhub Search (name->ticker resolution)
+  const [searchingTicker, setSearchingTicker] = useState(false);
+  const [searchError, setSearchError] = useState(null);
+
   // Company info state
   const [companyName, setCompanyName] = useState("");
   const [companyLoading, setCompanyLoading] = useState(false);
@@ -139,11 +143,53 @@ function App() {
   const toggleTheme = () => setTheme((t) => (t === "light" ? "dark" : "light"));
 
   // PUBLIC_INTERFACE
-  const handleSubmit = (e) => {
+  // Expanded: Accept either ticker or company name, resolve with Finnhub search if needed, then update ticker state
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const cleanTicker = inputTicker.trim().toUpperCase();
-    if (cleanTicker.length > 0 && cleanTicker !== ticker) {
-      setTicker(cleanTicker);
+    const inputRaw = inputTicker.trim();
+    if (!inputRaw) return;
+
+    // Allow only letters (for ticker) but also allow spaces (for company name)
+    const cleaned = inputRaw.replace(/[^a-zA-Z0-9 .&\-]/g, "");
+    // Try as ticker first
+    if (cleaned.toUpperCase() === ticker) return; // Already displaying
+    setApiError(null);
+    setSearchError(null);
+
+    // Heuristic: Use ticker directly if input is short (<=6 chars, no space), else try search
+    const likelyTicker = /^[A-Za-z]{1,6}$/.test(cleaned);
+
+    if (likelyTicker) {
+      setTicker(cleaned.toUpperCase());
+    } else {
+      // Search Finnhub for company name match -> best ticker
+      setSearchingTicker(true);
+      try {
+        // Finnhub API Key (same as metric/profiles, real deployment move to env/serverless proxy)
+        const apiKey = "d1omsf9r01quemda0sugd1omsf9r01quemda0sv0";
+        const url = `https://finnhub.io/api/v1/search?q=${encodeURIComponent(cleaned)}&token=${apiKey}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Finnhub search failed: status ${res.status}`);
+        const data = await res.json();
+        // Choose the most likely symbol (prefer S&P 500 US stocks)
+        if (data && data.count > 0 && Array.isArray(data.result)) {
+          let firstUsEquity = data.result.find(
+            (itm) => itm.type === "Common Stock" && itm.symbol && !itm.symbol.includes(":")
+          );
+          // fallback: first result at all
+          const bestMatch = firstUsEquity || data.result[0];
+          if (bestMatch && bestMatch.symbol) {
+            setTicker(bestMatch.symbol.toUpperCase());
+          } else {
+            setSearchError("No ticker symbol found for that company name.");
+          }
+        } else {
+          setSearchError("No results found for that company name.");
+        }
+      } catch (err) {
+        setSearchError(err.message || "Error searching for ticker symbol.");
+      }
+      setSearchingTicker(false);
     }
   };
 
@@ -463,7 +509,7 @@ function App() {
           autoComplete="off"
         >
           <label htmlFor="ticker-input" style={{ fontWeight: 600 }}>
-            Ticker:
+            Company or Ticker:
           </label>
           <input
             style={{
@@ -472,25 +518,27 @@ function App() {
               borderRadius: 8,
               border: "2px solid #1976d2",
               fontFamily: "monospace",
-              width: 190,
-              minWidth: 100,
+              width: 200,
+              minWidth: 120,
               background: "#eef4fb",
               outline: "none",
               fontWeight: 700,
               color: "#1565c0",
-              letterSpacing: "0.15em",
+              letterSpacing: "0.10em",
               boxShadow: "0 1px 3px rgba(20,40,110,0.09)",
               transition: "border 0.15s, box-shadow 0.15s",
+              textTransform: "uppercase"
             }}
             id="ticker-input"
             name="ticker"
             value={inputTicker}
-            onChange={(e) => setInputTicker(e.target.value.replace(/[^a-zA-Z]/g, "").toUpperCase())}
-            maxLength={8}
-            placeholder="AAPL"
+            // Let user type anything but restrict max length, preserve case
+            onChange={(e) => setInputTicker(e.target.value.slice(0, 32))}
+            maxLength={32}
+            placeholder="AAPL or Apple Inc"
             autoFocus
             required
-            aria-label="Ticker symbol"
+            aria-label="Company name or ticker"
             data-testid="ticker-input"
           />
           <button
@@ -506,10 +554,16 @@ function App() {
               cursor: "pointer",
               transition: "all 0.2s",
             }}
+            disabled={searchingTicker}
           >
-            Search
+            {searchingTicker ? "Resolving..." : "Search"}
           </button>
         </form>
+        {searchError && (
+          <div style={{ color: "red", fontWeight: 500, marginBottom: 7 }}>
+            {searchError}
+          </div>
+        )}
 
         <section
           style={{
