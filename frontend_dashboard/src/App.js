@@ -18,6 +18,15 @@ function App() {
   const [theme, setTheme] = useState("light");
   const [ticker, setTicker] = useState("AAPL"); // default starting ticker
   const [inputTicker, setInputTicker] = useState("AAPL");
+  /**
+   * setMetrics: Updates the metrics state variable with the latest stock metric data
+   * as returned from the Finnhub API for the selected ticker.
+   * - metrics: Contains key financial ratios and statistics (e.g., PE Ratio, ROE, profit margins, etc.)
+   *            used for scoring and displaying in the dashboard.
+   * - Expects the raw JSON data structure from Finnhub's `/stock/metric` endpoint,
+   *   or null if data fetch fails.
+   * - Used throughout the dashboard to drive the performance table and disposition logic.
+   */
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
